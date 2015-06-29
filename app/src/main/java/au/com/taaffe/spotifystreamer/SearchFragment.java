@@ -58,8 +58,6 @@ public class SearchFragment extends Fragment {
         ListView listView = (ListView) rootView.findViewById(R.id.listview);
         listView.setAdapter(adapter);
 
-
-
-        return inflater.inflate(R.layout.fragment_main, container, false);
+        return rootView;
     }
 }
