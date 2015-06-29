@@ -29,7 +29,6 @@ public class SearchFragment extends Fragment {
     ArrayAdapter<String> artistAdapter;
 
     private final String LOG_TAG = SearchFragment.class.getSimpleName();
-    FetchArtistTask fetchArtistTask = new FetchArtistTask();
 
     public SearchFragment() {
     }
@@ -71,7 +70,7 @@ public class SearchFragment extends Fragment {
         artistAdapter = new ArrayAdapter<String>(
                         getActivity(), // The current context (this activity)
                         R.layout.list_item_artist, // The name of the layout ID.
-                        R.id.list_item_forecast_textview,
+                        R.id.list_item_artist_textview,
                         artists
         );
 
@@ -86,6 +85,8 @@ public class SearchFragment extends Fragment {
 
     void updateArtistList(String query) {
         Log.v(LOG_TAG, "updateArtistList: " + query);
+
+        FetchArtistTask fetchArtistTask = new FetchArtistTask();
         fetchArtistTask.execute(query);
     }
 
