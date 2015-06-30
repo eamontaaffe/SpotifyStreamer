@@ -1,5 +1,6 @@
 package au.com.taaffe.spotifystreamer;
 
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
@@ -7,6 +8,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.SearchView;
@@ -26,7 +28,7 @@ import kaaes.spotify.webapi.android.models.ArtistsPager;
  * A placeholder fragment containing a simple view.
  */
 public class SearchFragment extends Fragment {
-    ArrayAdapter<String> artistAdapter;
+    ArtistAdapter artistAdapter;
 
     private final String LOG_TAG = SearchFragment.class.getSimpleName();
 
@@ -42,7 +44,6 @@ public class SearchFragment extends Fragment {
         artistSearch.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
-                Log.v(LOG_TAG, "OnQuerySubmit :" + query);
                 updateArtistList(query);
                 return false;
             }
@@ -53,39 +54,40 @@ public class SearchFragment extends Fragment {
             }
         });
 
-        // Create some dummy data for vthe ListView.  Here's a sample weekly forecast
-        String[] data = {
-                "Coldplay",
-                "Coldplay & Lele",
-                "Colplay & Rihanna",
-                "Various Artists - Coldplay Tribute"
-        };
-
-        List<String> artists = new ArrayList<String>(Arrays.asList(data));
+        List<Artist> artists = new ArrayList<Artist>();
 
         // Now that we have some dummy forecast data, create an ArrayAdapter.
         // The ArrayAdapter will take data from a source (like our dummy forecast)
         // use it to populate the ListView it's attached to.
 
-        artistAdapter = new ArrayAdapter<String>(
-                        getActivity(), // The current context (this activity)
-                        R.layout.list_item_artist, // The name of the layout ID.
-                        R.id.list_item_artist_textview,
-                        artists
+        artistAdapter = new ArtistAdapter(
+                getActivity(),
+                R.layout.list_item_artist,
+                artists
         );
-
-        Log.v(LOG_TAG, artistAdapter.toString());
 
         // Get a reference to the ListView, and attach this artistAdapter to it.
         ListView listView = (ListView) rootView.findViewById(R.id.listview);
         listView.setAdapter(artistAdapter);
 
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Artist artist = (Artist) parent.getItemAtPosition(position);
+                if (artist != null) {
+                    // Add the artist id to the intent so the tracks view knows what tracks to show.
+                    Intent openTracksIntent = new Intent(getActivity(), TopTracksActivity.class)
+                            .putExtra(Intent.EXTRA_TEXT, artist.id);
+
+                    startActivity(openTracksIntent);
+                }
+            }
+        });
+
         return rootView;
     }
 
     void updateArtistList(String query) {
-        Log.v(LOG_TAG, "updateArtistList: " + query);
-
         FetchArtistTask fetchArtistTask = new FetchArtistTask();
         fetchArtistTask.execute(query);
     }
@@ -97,19 +99,14 @@ public class SearchFragment extends Fragment {
         @Override
         protected Void doInBackground(String... params) {
             if (params.length == 0) {
-                Log.v(LOG_TAG,"Empty params list");
                 return null;
             }
 
             String query = params[0];
 
-            Log.v(LOG_TAG, "doInBackground, query: " + params[0]);
-
             SpotifyApi api = new SpotifyApi();
             SpotifyService spotify = api.getService();
             results = spotify.searchArtists(query);
-
-            Log.v(LOG_TAG, "Search results are size: " + results.artists.items.size());
 
             return null;
         }
@@ -129,7 +126,7 @@ public class SearchFragment extends Fragment {
             // update artistAdapter
             artistAdapter.clear();
             for(Artist result: results.artists.items) {
-                artistAdapter.add(result.name);
+                artistAdapter.add(result);
             }
 
         }

@@ -5,19 +5,26 @@
     android:gravity="center_vertical"
     android:minHeight="?android:attr/listPreferredItemHeight"
     android:orientation="horizontal"
-    android:padding="16dp">
+    >
 
-    <ImageView
-        android:id="@+id/list_item_icon"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+    <FrameLayout
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_margin="5dp">
 
+        <ImageView
+            android:id="@+id/list_item_icon"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_gravity="center" />
 
-    <TextView xmlns:android="http://schemas.android.com/apk/res/android"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:minHeight="?android:attr/listPreferredItemHeight"
-        android:gravity="center_vertical"
-        android:id="@+id/list_item_textview" />
+    </FrameLayout>
 
+        <TextView
+            android:paddingLeft="15dp"
+            android:id="@+id/list_item_textview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-condensed"
+            android:textSize="15sp"/>
 </LinearLayout>

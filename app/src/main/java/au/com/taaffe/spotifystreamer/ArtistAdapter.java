@@ -11,6 +11,8 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.squareup.picasso.Picasso;
+
 import java.util.List;
 
 import kaaes.spotify.webapi.android.models.Artist;
@@ -22,9 +24,9 @@ public class ArtistAdapter extends ArrayAdapter<Artist> {
 
     Context context;
     int layoutResourceId;
-    Artist data[] = null;
+    List<Artist> data = null;
 
-    public ArtistAdapter(Context context, int layoutResourceId, Artist[] data) {
+    public ArtistAdapter(Context context, int layoutResourceId, List<Artist> data) {
         super(context, layoutResourceId, data);
         this.layoutResourceId = layoutResourceId;
         this.context = context;
@@ -53,12 +55,14 @@ public class ArtistAdapter extends ArrayAdapter<Artist> {
         holder.textView.setText(artist.name);
 
         // TODO Get the image from the spotify and render it
-        //
-        //artist.images.get(0);
-        Image topImage;
-
-        //
-        holder.imageView.setImageResource(topImage);
+        if (!artist.images.isEmpty()) {
+            String url = artist.images.get(0).url;
+            Picasso.with(context)
+                    .load(url)
+                    .fit()
+                    .centerCrop()
+                    .into(holder.imageView);
+        }
 
         return convertView;
     }

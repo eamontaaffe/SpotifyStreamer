@@ -9,6 +9,7 @@
 
 
     <SearchView
+        android:queryHint="@string/artist_search_hint"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/artist_search_view"
