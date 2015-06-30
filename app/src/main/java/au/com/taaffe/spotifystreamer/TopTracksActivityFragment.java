@@ -1,10 +1,27 @@
 package au.com.taaffe.spotifystreamer;
 
+import android.content.Intent;
+import android.os.AsyncTask;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ListView;
+import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import kaaes.spotify.webapi.android.SpotifyApi;
+import kaaes.spotify.webapi.android.SpotifyService;
+import kaaes.spotify.webapi.android.models.Artist;
+import kaaes.spotify.webapi.android.models.ArtistsPager;
+import kaaes.spotify.webapi.android.models.Track;
+import kaaes.spotify.webapi.android.models.Tracks;
+import kaaes.spotify.webapi.android.models.TracksPager;
 
 
 /**
@@ -12,12 +29,70 @@ import android.view.ViewGroup;
  */
 public class TopTracksActivityFragment extends Fragment {
 
+    TrackAdapter trackAdapter;
+
     public TopTracksActivityFragment() {
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_top_tracks, container, false);
+
+        View rootView = inflater.inflate(R.layout.fragment_top_tracks, container, false);
+
+        ListView trackList = (ListView) rootView.findViewById(R.id.track_list);
+
+        List<Track> tracks = new ArrayList<Track>();
+
+        trackAdapter = new TrackAdapter(
+                getActivity(),
+                R.layout.list_item_track,
+                tracks
+        );
+
+        trackList.setAdapter(trackAdapter);
+
+        Intent intent = getActivity().getIntent();
+
+        // If the intent has and id then populate the list
+        if (intent != null && intent.hasExtra(Intent.EXTRA_TEXT)) {
+            String id = intent.getStringExtra(Intent.EXTRA_TEXT);
+            FetchTrackData fetchTrackData = new FetchTrackData();
+            fetchTrackData.execute(id);
+        }
+        return rootView;
+    }
+
+    private class FetchTrackData extends AsyncTask<String, Void, Void> {
+        private final String LOG_TAG = FetchTrackData.class.getSimpleName();
+        Tracks results;
+
+        @Override
+        protected Void doInBackground(String... params) {
+            if (params.length == 0) {
+                return null;
+            }
+
+            String id = params[0];
+            Map<String, Object> options = new HashMap<>();
+            options.put("country", "AU");
+
+            SpotifyApi api = new SpotifyApi();
+            SpotifyService spotify = api.getService();
+            results = spotify.getArtistTopTrack(id,options);
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+
+            trackAdapter.clear();
+            for (Track track : results.tracks) {
+                trackAdapter.add(track);
+            }
+
+        }
     }
 }

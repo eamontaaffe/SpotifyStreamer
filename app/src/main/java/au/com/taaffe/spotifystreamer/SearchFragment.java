@@ -41,6 +41,7 @@ public class SearchFragment extends Fragment {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
         SearchView artistSearch = (SearchView) rootView.findViewById(R.id.artist_search_view);
+
         artistSearch.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
@@ -55,10 +56,6 @@ public class SearchFragment extends Fragment {
         });
 
         List<Artist> artists = new ArrayList<Artist>();
-
-        // Now that we have some dummy forecast data, create an ArrayAdapter.
-        // The ArrayAdapter will take data from a source (like our dummy forecast)
-        // use it to populate the ListView it's attached to.
 
         artistAdapter = new ArtistAdapter(
                 getActivity(),
