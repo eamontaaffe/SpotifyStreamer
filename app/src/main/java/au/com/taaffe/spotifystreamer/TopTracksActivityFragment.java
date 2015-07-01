@@ -6,6 +6,7 @@ import android.os.AsyncTask;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +25,7 @@ import kaaes.spotify.webapi.android.models.ArtistsPager;
 import kaaes.spotify.webapi.android.models.Track;
 import kaaes.spotify.webapi.android.models.Tracks;
 import kaaes.spotify.webapi.android.models.TracksPager;
+import retrofit.RetrofitError;
 
 
 /**
@@ -108,20 +110,37 @@ public class TopTracksActivityFragment extends Fragment {
             Map<String, Object> options = new HashMap<>();
             options.put("country", "AU");
 
-            SpotifyApi api = new SpotifyApi();
-            SpotifyService spotify = api.getService();
-            results = spotify.getArtistTopTrack(id,options);
+            try {
 
-            return null;
+                SpotifyApi api = new SpotifyApi();
+                SpotifyService spotify = api.getService();
+                results = spotify.getArtistTopTrack(id,options);
+
+            } catch (RetrofitError e) {
+
+                Log.e(LOG_TAG, e.getMessage());
+                Log.e(LOG_TAG,e.getStackTrace().toString());
+            }   finally {
+
+                return null;
+
+            }
         }
 
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
 
-            trackAdapter.clear();
-            for (Track track : results.tracks) {
-                trackAdapter.add(track);
+            if (results != null) {
+                trackAdapter.clear();
+                for (Track track : results.tracks) {
+                    trackAdapter.add(track);
+                }
+            } else {
+                Toast.makeText(getActivity()
+                        ,getResources().getText(R.string.null_results),
+                        Toast.LENGTH_SHORT
+                ).show();
             }
 
         }

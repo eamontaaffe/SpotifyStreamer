@@ -25,6 +25,7 @@ import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Artist;
 import kaaes.spotify.webapi.android.models.ArtistsPager;
+import retrofit.RetrofitError;
 
 
 /**
@@ -129,29 +130,45 @@ public class SearchFragment extends Fragment {
 
             String query = params[0];
 
-            SpotifyApi api = new SpotifyApi();
-            SpotifyService spotify = api.getService();
-            results = spotify.searchArtists(query);
+            try {
 
-            return null;
+                SpotifyApi api = new SpotifyApi();
+                SpotifyService spotify = api.getService();
+                results = spotify.searchArtists(query);
 
+            } catch (RetrofitError e) {
+
+                Log.e(LOG_TAG,e.getMessage());
+                Log.e(LOG_TAG,e.getStackTrace().toString());
+
+            }   finally {
+
+                return null;
+
+            }
         }
 
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
-            int resultsSize = results.artists.items.size();
-            if (resultsSize == 0) {
-                Toast toast = Toast.makeText(getActivity(),
-                        R.string.no_results,
+            if (results != null) {
+                int resultsSize = results.artists.items.size();
+                if (resultsSize == 0) {
+                    Toast toast = Toast.makeText(getActivity(),
+                            R.string.no_results,
+                            Toast.LENGTH_SHORT
+                    );
+                    toast.show();
+                }
+
+                // update artistAdapter
+                updateArtistAdapter(results);
+            } else {
+                Toast.makeText(getActivity()
+                        ,getResources().getText(R.string.null_results),
                         Toast.LENGTH_SHORT
-                );
-                toast.show();
+                ).show();
             }
-
-            // update artistAdapter
-            updateArtistAdapter(results);
-
         }
     }
 
