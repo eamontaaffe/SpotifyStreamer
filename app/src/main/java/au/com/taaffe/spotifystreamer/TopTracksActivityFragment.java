@@ -41,6 +41,14 @@ public class TopTracksActivityFragment extends Fragment {
     public TopTracksActivityFragment() {
     }
 
+    // this method is only called once for this fragment
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // retain this fragment
+        setRetainInstance(true);
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -49,27 +57,32 @@ public class TopTracksActivityFragment extends Fragment {
 
         ListView trackList = (ListView) rootView.findViewById(R.id.track_list);
 
-        List<Track> tracks = new ArrayList<Track>();
+        // If the trackAdapter is null than it is not being restored from a configuration change
+        // so we need to initialise the top tracks list and adapter
+        if (trackAdapter == null) {
+            List<Track> tracks = new ArrayList<Track>();
 
-        trackAdapter = new TrackAdapter(
-                getActivity(),
-                R.layout.list_item_track,
-                tracks
-        );
+            trackAdapter = new TrackAdapter(
+                    getActivity(),
+                    R.layout.list_item_track,
+                    tracks
+            );
 
+            Intent intent = getActivity().getIntent();
+
+            // If the intent has and id then populate the list
+            if (intent != null && intent.hasExtra(TopTracksActivityFragment.ARTIST_INFO)) {
+                Bundle infoBundle = intent.getBundleExtra(TopTracksActivityFragment.ARTIST_INFO);
+                String id = infoBundle.getString(TopTracksActivityFragment.ARTIST_ID);
+                name = infoBundle.getString(TopTracksActivityFragment.ARTIST_NAME);
+
+                FetchTrackData fetchTrackData = new FetchTrackData();
+                fetchTrackData.execute(id);
+            }
+
+        }
         trackList.setAdapter(trackAdapter);
 
-        Intent intent = getActivity().getIntent();
-
-        // If the intent has and id then populate the list
-        if (intent != null && intent.hasExtra(TopTracksActivityFragment.ARTIST_INFO)) {
-            Bundle infoBundle = intent.getBundleExtra(TopTracksActivityFragment.ARTIST_INFO);
-            String id = infoBundle.getString(TopTracksActivityFragment.ARTIST_ID);
-            name = infoBundle.getString(TopTracksActivityFragment.ARTIST_NAME);
-
-            FetchTrackData fetchTrackData = new FetchTrackData();
-            fetchTrackData.execute(id);
-        }
         return rootView;
     }
 

@@ -1,6 +1,7 @@
 package au.com.taaffe.spotifystreamer;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.AsyncTask;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
@@ -30,12 +31,20 @@ import kaaes.spotify.webapi.android.models.ArtistsPager;
  * A placeholder fragment containing a simple view.
  */
 public class SearchFragment extends Fragment {
-    ArtistAdapter artistAdapter;
-
+    private ArtistAdapter artistAdapter;
     private final String LOG_TAG = SearchFragment.class.getSimpleName();
 
     public SearchFragment() {
     }
+
+    // this method is only called once for this fragment
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // retain this fragment
+        setRetainInstance(true);
+    }
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -57,16 +66,20 @@ public class SearchFragment extends Fragment {
             }
         });
 
-        List<Artist> artists = new ArrayList<Artist>();
-
-        artistAdapter = new ArtistAdapter(
-                getActivity(),
-                R.layout.list_item_artist,
-                artists
-        );
-
         // Get a reference to the ListView, and attach this artistAdapter to it.
         ListView listView = (ListView) rootView.findViewById(R.id.listview);
+
+        if (artistAdapter == null) {
+            List<Artist> artists = new ArrayList<Artist>();
+
+            artistAdapter = new ArtistAdapter(
+                    getActivity(),
+                    R.layout.list_item_artist,
+                    artists
+            );
+
+        }
+
         listView.setAdapter(artistAdapter);
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -78,10 +91,10 @@ public class SearchFragment extends Fragment {
                     Intent openTracksIntent = new Intent(getActivity(), TopTracksActivity.class);
 
                     Bundle extras = new Bundle();
-                    extras.putString(TopTracksActivityFragment.ARTIST_ID,artist.id);
-                    extras.putString(TopTracksActivityFragment.ARTIST_NAME,artist.name);
+                    extras.putString(TopTracksActivityFragment.ARTIST_ID, artist.id);
+                    extras.putString(TopTracksActivityFragment.ARTIST_NAME, artist.name);
 
-                    openTracksIntent.putExtra(TopTracksActivityFragment.ARTIST_INFO,extras);
+                    openTracksIntent.putExtra(TopTracksActivityFragment.ARTIST_INFO, extras);
 
                     startActivity(openTracksIntent);
                 }
@@ -96,8 +109,16 @@ public class SearchFragment extends Fragment {
         fetchArtistTask.execute(query);
     }
 
-    public class FetchArtistTask extends AsyncTask<String, Void, Void> {
+    void updateArtistAdapter(ArtistsPager results) {
+        artistAdapter.clear();
+        for(Artist result: results.artists.items) {
+            artistAdapter.add(result);
+        }
+    }
+
+    private class FetchArtistTask extends AsyncTask<String, Void, Void> {
         private final String LOG_TAG = FetchArtistTask.class.getSimpleName();
+
         ArtistsPager results;
 
         @Override
@@ -129,10 +150,7 @@ public class SearchFragment extends Fragment {
             }
 
             // update artistAdapter
-            artistAdapter.clear();
-            for(Artist result: results.artists.items) {
-                artistAdapter.add(result);
-            }
+            updateArtistAdapter(results);
 
         }
     }
