@@ -14,6 +14,8 @@ import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.Toast;
 
+import java.io.IOException;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -73,8 +75,13 @@ public class SearchFragment extends Fragment {
                 Artist artist = (Artist) parent.getItemAtPosition(position);
                 if (artist != null) {
                     // Add the artist id to the intent so the tracks view knows what tracks to show.
-                    Intent openTracksIntent = new Intent(getActivity(), TopTracksActivity.class)
-                            .putExtra(Intent.EXTRA_TEXT, artist.id);
+                    Intent openTracksIntent = new Intent(getActivity(), TopTracksActivity.class);
+
+                    Bundle extras = new Bundle();
+                    extras.putString(TopTracksActivityFragment.ARTIST_ID,artist.id);
+                    extras.putString(TopTracksActivityFragment.ARTIST_NAME,artist.name);
+
+                    openTracksIntent.putExtra(TopTracksActivityFragment.ARTIST_INFO,extras);
 
                     startActivity(openTracksIntent);
                 }
@@ -106,6 +113,7 @@ public class SearchFragment extends Fragment {
             results = spotify.searchArtists(query);
 
             return null;
+
         }
 
         @Override
@@ -114,7 +122,7 @@ public class SearchFragment extends Fragment {
             int resultsSize = results.artists.items.size();
             if (resultsSize == 0) {
                 Toast toast = Toast.makeText(getActivity(),
-                        "There are " + resultsSize + " results",
+                        R.string.no_results,
                         Toast.LENGTH_SHORT
                 );
                 toast.show();

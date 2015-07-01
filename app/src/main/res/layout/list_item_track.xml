@@ -8,9 +8,9 @@
     >
 
     <FrameLayout
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:layout_margin="5dp">
+        android:layout_width="65dp"
+        android:layout_height="65dp"
+        android:layout_margin="15dp">
 
         <ImageView
             android:id="@+id/list_item_icon"
@@ -28,7 +28,6 @@
         android:orientation="vertical">
 
     <TextView
-        android:paddingLeft="15dp"
         android:id="@+id/list_item_track"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -36,13 +35,12 @@
         android:textSize="15sp"/>
 
     <TextView
-        android:paddingLeft="15dp"
         android:layout_below="@id/list_item_track"
         android:id="@+id/list_item_album"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:fontFamily="sans-serif-condensed"
-        android:textSize="10sp"/>
+        android:textSize="12sp"/>
 
     </LinearLayout>
 </LinearLayout>

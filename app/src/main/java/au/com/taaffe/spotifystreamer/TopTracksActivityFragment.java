@@ -1,9 +1,11 @@
 package au.com.taaffe.spotifystreamer;
 
+import android.app.ActionBar;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,7 +31,12 @@ import kaaes.spotify.webapi.android.models.TracksPager;
  */
 public class TopTracksActivityFragment extends Fragment {
 
-    TrackAdapter trackAdapter;
+    public static final String ARTIST_INFO = "artist_info";
+    public static final String ARTIST_ID = "artist_id";
+    public static final String ARTIST_NAME = "artist_name";
+
+    private TrackAdapter trackAdapter;
+    private String name;
 
     public TopTracksActivityFragment() {
     }
@@ -55,12 +62,23 @@ public class TopTracksActivityFragment extends Fragment {
         Intent intent = getActivity().getIntent();
 
         // If the intent has and id then populate the list
-        if (intent != null && intent.hasExtra(Intent.EXTRA_TEXT)) {
-            String id = intent.getStringExtra(Intent.EXTRA_TEXT);
+        if (intent != null && intent.hasExtra(TopTracksActivityFragment.ARTIST_INFO)) {
+            Bundle infoBundle = intent.getBundleExtra(TopTracksActivityFragment.ARTIST_INFO);
+            String id = infoBundle.getString(TopTracksActivityFragment.ARTIST_ID);
+            name = infoBundle.getString(TopTracksActivityFragment.ARTIST_NAME);
+
             FetchTrackData fetchTrackData = new FetchTrackData();
             fetchTrackData.execute(id);
         }
         return rootView;
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        if (name != null) {
+            ((ActionBarActivity)getActivity()).getSupportActionBar().setSubtitle(name);
+        }
     }
 
     private class FetchTrackData extends AsyncTask<String, Void, Void> {

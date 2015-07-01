@@ -54,7 +54,6 @@ public class ArtistAdapter extends ArrayAdapter<Artist> {
 
         holder.textView.setText(artist.name);
 
-        // TODO Get the image from the spotify and render it
         if (!artist.images.isEmpty()) {
             String url = artist.images.get(0).url;
             Picasso.with(context)

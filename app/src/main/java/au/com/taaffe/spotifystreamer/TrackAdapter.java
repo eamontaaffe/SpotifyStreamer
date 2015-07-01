@@ -56,7 +56,6 @@ public class TrackAdapter extends ArrayAdapter<Track> {
         holder.trackView.setText(track.name);
         holder.albumView.setText(track.album.name);
 
-        // TODO Get the image from the spotify and render it
         if (!track.album.images.isEmpty()) {
             String url = track.album.images.get(0).url;
             Picasso.with(context)
