@@ -1,5 +1,6 @@
 # SpotifyStreamer
 This is a project for the Udacity Android Developers Nanodegree
 
-![Search Activity](/images/searchActivityFragment.png =250x100)
+<img src=/images/searchActivityFragment.png width=600 height=100 />
+![Search Activity](/images/searchActivityFragment.png)
 ![Top Tracks Activity](/images/topTracksActivityFragment.png)
