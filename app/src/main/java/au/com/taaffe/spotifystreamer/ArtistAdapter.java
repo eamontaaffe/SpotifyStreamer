@@ -55,7 +55,11 @@ public class ArtistAdapter extends ArrayAdapter<Artist> {
         holder.textView.setText(artist.name);
 
         if (!artist.images.isEmpty()) {
-            String url = artist.images.get(0).url;
+
+            // Get the smallest image available to save the users data
+            String url = artist.images.get(artist.images.size()-1).url;
+
+            // Crop the image so that it is always a square the size of the imageView
             Picasso.with(context)
                     .load(url)
                     .fit()

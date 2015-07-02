@@ -57,7 +57,11 @@ public class TrackAdapter extends ArrayAdapter<Track> {
         holder.albumView.setText(track.album.name);
 
         if (!track.album.images.isEmpty()) {
-            String url = track.album.images.get(0).url;
+
+            // Get the smallest image available to save the users data
+            String url = track.album.images.get(track.album.images.size()-1).url;
+
+            // Crop the image so that it is always a square the size of the imageView
             Picasso.with(context)
                     .load(url)
                     .fit()
