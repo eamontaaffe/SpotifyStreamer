@@ -9,6 +9,7 @@ This project utilises [Picasso](https://github.com/square/picasso) for downloadi
 
 ## Search Activity
 This activity is used to search for artists by name. It returns a list of all the possible artists returned by the Spotify API. If a user clicks on an artist it takes them to the top tracks by that artist.
+
 <img src=/images/searchActivityFragment.png width=250  />
 
 ## Top Tracks Activity
