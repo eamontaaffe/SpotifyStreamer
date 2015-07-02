@@ -72,7 +72,7 @@ public class TopTracksActivityFragment extends Fragment {
 
             Intent intent = getActivity().getIntent();
 
-            // If the intent has and id then populate the list
+            // If the intent has artist info then populate the list
             if (intent != null && intent.hasExtra(TopTracksActivityFragment.ARTIST_INFO)) {
                 Bundle infoBundle = intent.getBundleExtra(TopTracksActivityFragment.ARTIST_INFO);
                 String id = infoBundle.getString(TopTracksActivityFragment.ARTIST_ID);
@@ -108,22 +108,21 @@ public class TopTracksActivityFragment extends Fragment {
 
             String id = params[0];
             Map<String, Object> options = new HashMap<>();
+
+            // TODO add settings option for country
+            // Hard code in country setting for now
             options.put("country", "AU");
 
+            SpotifyApi api = new SpotifyApi();
+            SpotifyService spotify = api.getService();
+
             try {
-
-                SpotifyApi api = new SpotifyApi();
-                SpotifyService spotify = api.getService();
                 results = spotify.getArtistTopTrack(id,options);
-
             } catch (RetrofitError e) {
-
                 Log.e(LOG_TAG, e.getMessage());
                 Log.e(LOG_TAG,e.getStackTrace().toString());
             }   finally {
-
                 return null;
-
             }
         }
 

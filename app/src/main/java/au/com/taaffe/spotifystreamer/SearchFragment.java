@@ -130,21 +130,17 @@ public class SearchFragment extends Fragment {
 
             String query = params[0];
 
+            SpotifyApi api = new SpotifyApi();
+            SpotifyService spotify = api.getService();
+
             try {
-
-                SpotifyApi api = new SpotifyApi();
-                SpotifyService spotify = api.getService();
                 results = spotify.searchArtists(query);
-
             } catch (RetrofitError e) {
-
                 Log.e(LOG_TAG,e.getMessage());
                 Log.e(LOG_TAG,e.getStackTrace().toString());
 
             }   finally {
-
                 return null;
-
             }
         }
 
