@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -84,6 +85,29 @@ public class TopTracksActivityFragment extends Fragment {
 
         }
         trackList.setAdapter(trackAdapter);
+
+        trackList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Track track = (Track) parent.getItemAtPosition(position);
+                if (track != null) {
+                    Intent playTrackIntent = new Intent(getActivity(), PlayerActivity.class);
+
+                    // Rather than just passing a track id and having to do another API request,
+                    // just pass all the relevant info to increase speed and save data.
+                    Bundle extras = new Bundle();
+                    extras.putString(PlayerActivityFragment.TRACK_NAME, track.name);
+                    extras.putString(PlayerActivityFragment.ARTIST,name);
+                    extras.putString(PlayerActivityFragment.ALBUM,track.album.name);
+                    extras.putString(PlayerActivityFragment.TRACK_ID, track.id);
+                    extras.putString(PlayerActivityFragment.TRACK_IMAGE_URL,
+                            track.album.images.get(0).url);
+
+                    playTrackIntent.putExtra(PlayerActivityFragment.TRACK_INFO, extras);
+                    startActivity(playTrackIntent);
+                }
+            }
+        });
 
         return rootView;
     }
