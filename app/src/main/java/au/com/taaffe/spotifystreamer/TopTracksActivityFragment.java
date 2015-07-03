@@ -74,10 +74,10 @@ public class TopTracksActivityFragment extends Fragment {
             Intent intent = getActivity().getIntent();
 
             // If the intent has artist info then populate the list
-            if (intent != null && intent.hasExtra(TopTracksActivityFragment.ARTIST_INFO)) {
-                Bundle infoBundle = intent.getBundleExtra(TopTracksActivityFragment.ARTIST_INFO);
-                String id = infoBundle.getString(TopTracksActivityFragment.ARTIST_ID);
-                name = infoBundle.getString(TopTracksActivityFragment.ARTIST_NAME);
+            if (intent != null && intent.hasExtra(ARTIST_INFO)) {
+                Bundle infoBundle = intent.getBundleExtra(ARTIST_INFO);
+                String id = infoBundle.getString(ARTIST_ID);
+                name = infoBundle.getString(ARTIST_NAME);
 
                 FetchTrackData fetchTrackData = new FetchTrackData();
                 fetchTrackData.execute(id);
@@ -102,6 +102,7 @@ public class TopTracksActivityFragment extends Fragment {
                     extras.putString(PlayerActivityFragment.TRACK_ID, track.id);
                     extras.putString(PlayerActivityFragment.TRACK_IMAGE_URL,
                             track.album.images.get(0).url);
+                    extras.putString(PlayerActivityFragment.PREVIEW_URL,track.preview_url);
 
                     playTrackIntent.putExtra(PlayerActivityFragment.TRACK_INFO, extras);
                     startActivity(playTrackIntent);
