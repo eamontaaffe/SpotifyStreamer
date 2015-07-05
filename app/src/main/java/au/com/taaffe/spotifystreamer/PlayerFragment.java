@@ -100,6 +100,7 @@ public class PlayerFragment extends Fragment {
             mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                 @Override
                 public void onPrepared(MediaPlayer mp) {
+                    // TODO it shouldn't start the player if it was purposely paused
                     startPlayer();
                 }
             });
