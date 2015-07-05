@@ -82,6 +82,11 @@ public class PlayerActivityFragment extends Fragment {
             mMediaPlayer = new MediaPlayer();
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
 
+            //TODO initialise duration and current position textviews
+//            currentTimeTextView.setText(mMediaPlayer.getDuration());
+//            totalTimeTextView.setText(mMediaPlayer.getDuration());
+
+
             try {
                 mMediaPlayer.setDataSource(previewUrl);
             } catch ( IllegalArgumentException e) {
@@ -94,9 +99,6 @@ public class PlayerActivityFragment extends Fragment {
                 @Override
                 public void onPrepared(MediaPlayer mp) {
                     start_player();
-                    //TODO initialise duration and current position textviews
-//                    currentTimeTextView.setText(mp.getCurrentPosition());
-//                    totalTimeTextView.setText(mp.getDuration());
                 }
             });
 
