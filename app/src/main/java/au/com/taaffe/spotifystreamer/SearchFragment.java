@@ -1,7 +1,6 @@
 package au.com.taaffe.spotifystreamer;
 
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.os.AsyncTask;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
@@ -10,15 +9,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.Toast;
 
-import java.io.IOException;
-import java.net.SocketException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import kaaes.spotify.webapi.android.SpotifyApi;
@@ -92,10 +87,10 @@ public class SearchFragment extends Fragment {
                     Intent openTracksIntent = new Intent(getActivity(), TopTracksActivity.class);
 
                     Bundle extras = new Bundle();
-                    extras.putString(TopTracksActivityFragment.ARTIST_ID, artist.id);
-                    extras.putString(TopTracksActivityFragment.ARTIST_NAME, artist.name);
+                    extras.putString(TopTracksFragment.ARTIST_ID, artist.id);
+                    extras.putString(TopTracksFragment.ARTIST_NAME, artist.name);
 
-                    openTracksIntent.putExtra(TopTracksActivityFragment.ARTIST_INFO, extras);
+                    openTracksIntent.putExtra(TopTracksFragment.ARTIST_INFO, extras);
 
                     startActivity(openTracksIntent);
                 }
