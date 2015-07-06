@@ -13,6 +13,7 @@ import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
+import jp.wasabeef.picasso.transformations.CropCircleTransformation;
 import kaaes.spotify.webapi.android.models.Artist;
 import kaaes.spotify.webapi.android.models.Track;
 
@@ -66,6 +67,7 @@ public class TrackAdapter extends ArrayAdapter<Track> {
                     .load(url)
                     .fit()
                     .centerCrop()
+                    .transform(new CropCircleTransformation())
                     .into(holder.imageView);
         }
 

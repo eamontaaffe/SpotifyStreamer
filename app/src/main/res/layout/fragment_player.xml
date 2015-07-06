@@ -8,14 +8,12 @@
 
     <TextView
         android:id="@+id/artist_textview"
-        android:text="Coldplay"
         android:layout_centerHorizontal="true"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
     <TextView
         android:id="@+id/album_textview"
-        android:text="Ghost Stories"
         android:layout_below="@+id/artist_textview"
         android:layout_centerHorizontal="true"
         android:layout_width="wrap_content"
@@ -37,7 +35,6 @@
 
     <TextView
         android:id="@+id/track_textview"
-        android:text="A Sky Full of Stars"
         android:layout_centerHorizontal="true"
         android:layout_below="@+id/album_framelayout"
         android:layout_width="wrap_content"
@@ -58,13 +55,13 @@
         android:layout_height="wrap_content">
         <TextView
             android:id="@+id/current_time_textview"
-            android:text="0:00"
+            android:text="@string/time_default"
             android:layout_alignParentLeft="true"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
         <TextView
             android:id="@+id/total_time_textview"
-            android:text="0:30"
+            android:text="@string/time_default"
             android:layout_alignParentRight="true"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />

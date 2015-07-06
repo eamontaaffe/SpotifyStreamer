@@ -45,7 +45,7 @@ public class SearchFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.fragment_main, container, false);
+        View rootView = inflater.inflate(R.layout.fragment_search, container, false);
 
         SearchView artistSearch = (SearchView) rootView.findViewById(R.id.artist_search_view);
 
@@ -89,6 +89,7 @@ public class SearchFragment extends Fragment {
                     Bundle extras = new Bundle();
                     extras.putString(TopTracksFragment.ARTIST_ID, artist.id);
                     extras.putString(TopTracksFragment.ARTIST_NAME, artist.name);
+                    extras.putString(TopTracksFragment.ARTIST_IMAGE_URL, artist.images.get(0).url);
 
                     openTracksIntent.putExtra(TopTracksFragment.ARTIST_INFO, extras);
 

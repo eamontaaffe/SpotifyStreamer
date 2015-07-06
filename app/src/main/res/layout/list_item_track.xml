@@ -6,41 +6,44 @@
     android:minHeight="?android:attr/listPreferredItemHeight"
     android:orientation="horizontal"
     >
-
     <FrameLayout
-        android:layout_width="65dp"
-        android:layout_height="65dp"
-        android:layout_margin="15dp">
-
+        android:layout_width="72dp"
+        android:layout_height="72dp">
         <ImageView
             android:id="@+id/list_item_icon"
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
+            android:padding="16dp"
             android:layout_gravity="center" />
-
     </FrameLayout>
+
 
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:paddingRight="16dp"
         android:gravity="center_vertical"
-        android:minHeight="?android:attr/listPreferredItemHeight"
         android:orientation="vertical">
 
     <TextView
         android:id="@+id/list_item_track"
+        android:layout_weight="1"
+        android:textColor="@color/primary_text_default_material_light"
+        android:text="Two-line item"
+        android:fontFamily="sans-serif"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:fontFamily="sans-serif-condensed"
-        android:textSize="15sp"/>
+        android:textSize="@dimen/list_primary_text_size"/>
 
     <TextView
-        android:layout_below="@id/list_item_track"
+        android:layout_weight="1"
+        android:text="Secondary text"
+        android:textColor="@color/secondary_text_default_material_light"
         android:id="@+id/list_item_album"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:fontFamily="sans-serif-condensed"
-        android:textSize="12sp"/>
+        android:fontFamily="sans-serif"
+        android:textSize="@dimen/list_secondary_text_size"/>
 
     </LinearLayout>
 </LinearLayout>

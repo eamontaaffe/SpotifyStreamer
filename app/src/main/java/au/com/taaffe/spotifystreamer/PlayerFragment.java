@@ -1,6 +1,8 @@
 package au.com.taaffe.spotifystreamer;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.support.v4.app.Fragment;
@@ -11,12 +13,16 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -33,6 +39,8 @@ public class PlayerFragment extends Fragment {
     public static final String TRACK_LIST = "track_list";
     public static final String TRACK_INDEX = "track_index";
 
+    public static final int UPDATE_PERIOD = 1000;
+
     @Bind(R.id.artist_textview) TextView artistTextView;
     @Bind(R.id.album_textview) TextView albumTextView;
     @Bind(R.id.album_imageview) ImageView albumImageView;
@@ -40,6 +48,7 @@ public class PlayerFragment extends Fragment {
     @Bind(R.id.play_pause_button) ImageButton playPauseButton;
     @Bind(R.id.current_time_textview) TextView currentTimeTextView;
     @Bind(R.id.total_time_textview) TextView totalTimeTextView;
+    @Bind(R.id.scrub_bar) SeekBar scrubBar;
 
     MediaPlayer mMediaPlayer;
     ArrayList<ParcelableTrack> parcelableTrackList;
@@ -100,6 +109,33 @@ public class PlayerFragment extends Fragment {
             mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                 @Override
                 public void onPrepared(MediaPlayer mp) {
+                    Log.v(LOG_TAG, Integer.toString(mp.getDuration()));
+                    updateTime();
+
+                    // Set the upperbound of the scrub bar now that you know what it is
+                    scrubBar.setMax(mp.getDuration());
+
+                    scrubBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                        @Override
+                        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                            if (fromUser) {
+                                mMediaPlayer.seekTo(progress);
+                            }
+                            currentTimeTextView.setText(
+                                    formatMillis(mMediaPlayer.getCurrentPosition()));
+                        }
+
+                        @Override
+                        public void onStartTrackingTouch(SeekBar seekBar) {
+
+                        }
+
+                        @Override
+                        public void onStopTrackingTouch(SeekBar seekBar) {
+
+                        }
+                    });
+
                     // TODO it shouldn't start the player if it was purposely paused
                     startPlayer();
                 }
@@ -119,6 +155,20 @@ public class PlayerFragment extends Fragment {
         }
 
         return rootView;
+    }
+
+    private void updateTime() {
+        totalTimeTextView.setText(
+                formatMillis(mMediaPlayer.getDuration()));
+        currentTimeTextView.setText(
+                formatMillis(mMediaPlayer.getCurrentPosition()));
+    }
+
+    private String formatMillis(int time) {
+        // TODO use a formatting string instead of hardcode
+        return String.format("%2d:%02d",
+                TimeUnit.MINUTES.convert(time,TimeUnit.MILLISECONDS),
+                TimeUnit.SECONDS.convert(time,TimeUnit.MILLISECONDS));
     }
 
     private void startPlayer() {

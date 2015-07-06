@@ -15,6 +15,7 @@ import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
+import jp.wasabeef.picasso.transformations.CropCircleTransformation;
 import kaaes.spotify.webapi.android.models.Artist;
 
 /**
@@ -64,6 +65,7 @@ public class ArtistAdapter extends ArrayAdapter<Artist> {
                     .load(url)
                     .fit()
                     .centerCrop()
+                    .transform(new CropCircleTransformation())
                     .into(holder.imageView);
         }
 

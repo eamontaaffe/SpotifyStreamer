@@ -10,14 +10,18 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.Toast;
+
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import jp.wasabeef.picasso.transformations.CropCircleTransformation;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Track;
@@ -34,9 +38,10 @@ public class TopTracksFragment extends Fragment {
     public static final String ARTIST_INFO = "artist_info";
     public static final String ARTIST_ID = "artist_id";
     public static final String ARTIST_NAME = "artist_name";
+    public static final String ARTIST_IMAGE_URL = "artist_image_url";
 
-    private TrackAdapter trackAdapter;
-    private String name;
+    private TrackAdapter mTrackAdapter;
+    private String mName;
 
     ArrayList <ParcelableTrack> parcelableTrackList = new ArrayList<ParcelableTrack>();
 
@@ -61,10 +66,10 @@ public class TopTracksFragment extends Fragment {
 
         // If the trackAdapter is null than it is not being restored from a configuration change
         // so we need to initialise the top tracks list and adapter
-        if (trackAdapter == null) {
+        if (mTrackAdapter == null) {
             List<Track> tracks = new ArrayList<Track>();
 
-            trackAdapter = new TrackAdapter(
+            mTrackAdapter = new TrackAdapter(
                     getActivity(),
                     R.layout.list_item_track,
                     tracks
@@ -78,14 +83,26 @@ public class TopTracksFragment extends Fragment {
             if (intent != null && intent.hasExtra(ARTIST_INFO)) {
                 Bundle infoBundle = intent.getBundleExtra(ARTIST_INFO);
                 String id = infoBundle.getString(ARTIST_ID);
-                name = infoBundle.getString(ARTIST_NAME);
+                mName = infoBundle.getString(ARTIST_NAME);
+                String artistImageUrl = infoBundle.getString(ARTIST_IMAGE_URL);
+
+                ImageView artistImageView =
+                        (ImageView) rootView.findViewById(R.id.artist_imageview);
+
+                Picasso.with(getActivity())
+                        .load(artistImageUrl)
+                        .fit()
+                        .centerCrop()
+                        .into(artistImageView);
+
+
 
                 FetchTrackData fetchTrackData = new FetchTrackData();
                 fetchTrackData.execute(id);
             }
 
         }
-        trackList.setAdapter(trackAdapter);
+        trackList.setAdapter(mTrackAdapter);
 
         trackList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -116,8 +133,8 @@ public class TopTracksFragment extends Fragment {
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        if (name != null) {
-            ((ActionBarActivity)getActivity()).getSupportActionBar().setSubtitle(name);
+        if (mName != null) {
+            ((ActionBarActivity)getActivity()).getSupportActionBar().setSubtitle(mName);
         }
     }
 
@@ -156,15 +173,15 @@ public class TopTracksFragment extends Fragment {
             super.onPostExecute(aVoid);
 
             if (results != null) {
-                trackAdapter.clear();
+                mTrackAdapter.clear();
                 for (Track track : results.tracks) {
-                    trackAdapter.add(track);
+                    mTrackAdapter.add(track);
                 }
 
                 for (int i = 0; i < results.tracks.size(); i++) {
                     parcelableTrackList.add(new ParcelableTrack(
                             (Track) results.tracks.get(i),
-                            name));
+                            mName));
                     Log.v(LOG_TAG,((Track) results.tracks.get(i)).name);
                 }
 
