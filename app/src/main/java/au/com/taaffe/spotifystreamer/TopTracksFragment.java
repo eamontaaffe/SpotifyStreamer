@@ -1,19 +1,25 @@
 package au.com.taaffe.spotifystreamer;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.os.AsyncTask;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
+import android.support.v7.graphics.Palette;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
@@ -21,7 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import jp.wasabeef.picasso.transformations.CropCircleTransformation;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Track;
@@ -42,8 +47,10 @@ public class TopTracksFragment extends Fragment {
 
     private TrackAdapter mTrackAdapter;
     private String mName;
+    int vibrantColor = -1;
+    int darkVibrantColor = -1;
 
-    ArrayList <ParcelableTrack> parcelableTrackList = new ArrayList<ParcelableTrack>();
+    ArrayList <ParcelableTrack> parcelableTracks = new ArrayList<ParcelableTrack>();
 
     public TopTracksFragment() {
     }
@@ -86,14 +93,51 @@ public class TopTracksFragment extends Fragment {
                 mName = infoBundle.getString(ARTIST_NAME);
                 String artistImageUrl = infoBundle.getString(ARTIST_IMAGE_URL);
 
-                ImageView artistImageView =
+                final ImageView artistImageView =
                         (ImageView) rootView.findViewById(R.id.artist_imageview);
 
                 Picasso.with(getActivity())
                         .load(artistImageUrl)
                         .fit()
                         .centerCrop()
-                        .into(artistImageView);
+                        .into(artistImageView, new Callback() {
+                            @Override
+                            public void onSuccess() {
+                                Bitmap bitmap =
+                                        ((BitmapDrawable)artistImageView.getDrawable()).getBitmap();
+                                Log.v(LOG_TAG, "Picasso Callback OnSuccess");
+                                Palette.generateAsync(bitmap, new Palette.PaletteAsyncListener() {
+                                    private String LOG_TAG =
+                                            Palette.PaletteAsyncListener.class.getSimpleName();
+
+                                    @Override
+                                    public void onGenerated(Palette palette) {
+                                        android.support.v7.app.ActionBar mActionBar =
+                                                ((ActionBarActivity)getActivity())
+                                                        .getSupportActionBar();
+                                        Window window = getActivity().getWindow();
+
+                                        palette.getVibrantColor(R.color.primary);
+
+                                        vibrantColor = palette.getVibrantColor(R.color.primary);
+                                        ColorDrawable vibrantColorDrawable = new ColorDrawable(
+                                                vibrantColor);
+                                        darkVibrantColor =
+                                                palette.getDarkVibrantColor(R.color.primary_dark);
+
+                                        if (mActionBar != null && window != null) {
+                                            mActionBar.setBackgroundDrawable(vibrantColorDrawable);
+                                            window.setStatusBarColor(darkVibrantColor);
+                                        }
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onError() {
+                                Log.d(LOG_TAG, "Picasso Callback OnFailure");
+                            }
+                        });
 
 
 
@@ -114,13 +158,16 @@ public class TopTracksFragment extends Fragment {
                     // Rather than just passing a track id and having to do another API request,
                     // just pass all the relevant info to increase speed and save data.
                     playTrackIntent.putParcelableArrayListExtra(
-                            PlayerFragment.TRACK_LIST, parcelableTrackList);
-
-                    for(int i=0; i< parcelableTrackList.size();i++){
-                        Log.v(LOG_TAG,parcelableTrackList.get(i).track_name);
-                    }
+                            PlayerFragment.TRACK_LIST, parcelableTracks);
 
                     playTrackIntent.putExtra(PlayerFragment.TRACK_INDEX, position);
+
+                    if( vibrantColor != -1 && darkVibrantColor != -1) {
+                        Bundle colors = new Bundle();
+                        colors.putInt(PlayerFragment.VIBRANT_COLOR, vibrantColor);
+                        colors.putInt(PlayerFragment.DARK_VIBRANT_COLOR, darkVibrantColor);
+                        playTrackIntent.putExtra(PlayerFragment.COLORS,colors);
+                    }
 
                     startActivity(playTrackIntent);
                 }
@@ -179,17 +226,10 @@ public class TopTracksFragment extends Fragment {
                 }
 
                 for (int i = 0; i < results.tracks.size(); i++) {
-                    parcelableTrackList.add(new ParcelableTrack(
+                    parcelableTracks.add(new ParcelableTrack(
                             (Track) results.tracks.get(i),
                             mName));
-                    Log.v(LOG_TAG,((Track) results.tracks.get(i)).name);
                 }
-
-                for(int i=0; i< parcelableTrackList.size();i++){
-                    Log.v(LOG_TAG,parcelableTrackList.get(i).track_name);
-                }
-
-
             } else {
                 Toast.makeText(getActivity()
                         ,getResources().getText(R.string.null_results),

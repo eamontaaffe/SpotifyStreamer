@@ -1,28 +1,28 @@
 package au.com.taaffe.spotifystreamer;
 
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.graphics.drawable.ColorDrawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -50,9 +50,16 @@ public class PlayerFragment extends Fragment {
     @Bind(R.id.total_time_textview) TextView totalTimeTextView;
     @Bind(R.id.scrub_bar) SeekBar scrubBar;
 
+    public static final String COLORS = "colors";
+    public static final String VIBRANT_COLOR = "vibrant_color";
+    public static final String DARK_VIBRANT_COLOR = "dark_vibrant_color";
+
     MediaPlayer mMediaPlayer;
     ArrayList<ParcelableTrack> parcelableTrackList;
     int trackIndex;
+
+    int vibrantColor = -1;
+    int darkVibrantColor = -1;
 
     public PlayerFragment() {
     }
@@ -66,6 +73,26 @@ public class PlayerFragment extends Fragment {
         ButterKnife.bind(this, rootView);
 
         Intent intent = getActivity().getIntent();
+
+        if (intent != null && intent.hasExtra(COLORS)) {
+            Bundle colors = intent.getBundleExtra(COLORS);
+            vibrantColor = colors.getInt(VIBRANT_COLOR);
+            darkVibrantColor = colors.getInt(DARK_VIBRANT_COLOR);
+
+            android.support.v7.app.ActionBar mActionBar =
+                    ((ActionBarActivity)getActivity())
+                            .getSupportActionBar();
+            Window window = getActivity().getWindow();
+
+            ColorDrawable vibrantColorDrawable = new ColorDrawable(
+                    vibrantColor);
+
+            if (mActionBar != null && window != null) {
+                mActionBar.setBackgroundDrawable(vibrantColorDrawable);
+                window.setStatusBarColor(darkVibrantColor);
+            }
+        }
+
 
         if (intent != null && intent.hasExtra(TRACK_LIST)
                 && intent.hasExtra(TRACK_INDEX)) {
@@ -196,28 +223,28 @@ public class PlayerFragment extends Fragment {
 
     @OnClick(R.id.next_button)
     public void onNextButton(View view) {
-
-        if (parcelableTrackList == null) {
-            return;
+        if (trackIndex == parcelableTrackList.size()-1) {
+            Toast.makeText(getActivity(),
+                    "This is the last track",Toast.LENGTH_SHORT)
+                    .show();
+        }   else {
+            playTrack(trackIndex + 1);
         }
-
-        Intent playTrackIntent = new Intent(getActivity(), PlayerActivity.class);
-
-        playTrackIntent.putParcelableArrayListExtra(
-                TRACK_LIST, parcelableTrackList);
-
-        // TODO implement better edge case handling for next button
-        playTrackIntent.putExtra(
-                TRACK_INDEX,
-                trackIndex == parcelableTrackList.size()+1 ?
-                        parcelableTrackList.size()+1 : trackIndex+1);
-
-        startActivity(playTrackIntent);
-        getActivity().finish();
     }
 
     @OnClick(R.id.previous_button)
     public void onPreviousButton(View view) {
+        if (trackIndex == 0) {
+            Toast.makeText(getActivity(),
+                    "This is the first track",Toast.LENGTH_SHORT)
+                    .show();
+        }   else {
+            playTrack(trackIndex -
+                    1);
+        }
+    }
+
+    public void playTrack(int trackIndex) {
         if (parcelableTrackList == null) {
             return;
         }
@@ -227,10 +254,17 @@ public class PlayerFragment extends Fragment {
         playTrackIntent.putParcelableArrayListExtra(
                 TRACK_LIST, parcelableTrackList);
 
+        if( vibrantColor != -1 && darkVibrantColor != -1) {
+            Bundle colors = new Bundle();
+            colors.putInt(PlayerFragment.VIBRANT_COLOR, vibrantColor);
+            colors.putInt(PlayerFragment.DARK_VIBRANT_COLOR, darkVibrantColor);
+            playTrackIntent.putExtra(PlayerFragment.COLORS,colors);
+        }
+
         // TODO implement better edge case handling previous button
         playTrackIntent.putExtra(
                 TRACK_INDEX,
-                trackIndex == 0 ?  0 : trackIndex - 1);
+                trackIndex);
 
         startActivity(playTrackIntent);
         getActivity().finish();
