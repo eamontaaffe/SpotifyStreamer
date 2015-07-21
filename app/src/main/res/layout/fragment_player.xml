@@ -4,7 +4,8 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:paddingBottom="@dimen/activity_vertical_margin"
-    tools:context="au.com.taaffe.spotifystreamer.PlayerFragment">
+    tools:context="au.com.taaffe.spotifystreamer.PlayerDialogFragment"
+    android:gravity="bottom">
 
     <TextView
         android:id="@+id/artist_textview"
@@ -26,11 +27,13 @@
         android:layout_width="300dp"
         android:layout_height="300dp"
         android:layout_margin="0dp">
+
         <ImageView
 
             android:id="@+id/album_imageview"
             android:layout_width="fill_parent"
             android:layout_height="fill_parent" />
+
     </FrameLayout>
 
     <TextView
@@ -44,8 +47,10 @@
         android:layout_below="@+id/track_textview"
         android:id="@+id/scrub_bar"
         android:layout_centerHorizontal="true"
-        android:layout_width="350dp"
-        android:layout_height="wrap_content" />
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp"/>
 
     <RelativeLayout
         android:id="@+id/time_layout"
@@ -53,41 +58,48 @@
         android:layout_centerHorizontal="true"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content">
+
         <TextView
             android:id="@+id/current_time_textview"
             android:text="@string/time_default"
             android:layout_alignParentLeft="true"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
+
         <TextView
             android:id="@+id/total_time_textview"
             android:text="@string/time_default"
             android:layout_alignParentRight="true"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
+
     </RelativeLayout>
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_below="@+id/time_layout"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent">
-
+        android:layout_centerHorizontal="true"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content">
 
         <ImageButton
             style="@style/MediaButtonImage"
             android:id="@+id/previous_button"
-            android:src="@android:drawable/ic_media_previous"/>
+            android:src="@android:drawable/ic_media_previous"
+            android:layout_alignParentLeft="true" />
 
         <ImageButton
             style="@style/MediaButtonImage"
             android:id="@+id/play_pause_button"
-            android:src="@android:drawable/ic_media_play"/>
+            android:src="@android:drawable/ic_media_play"
+            android:layout_centerHorizontal="true" />
 
         <ImageButton
             style="@style/MediaButtonImage"
             android:id="@+id/next_button"
-            android:src="@android:drawable/ic_media_next"/>
-    </LinearLayout>
+            android:src="@android:drawable/ic_media_next"
+            android:layout_alignParentRight="true"/>
+
+    </RelativeLayout>
 
 
 

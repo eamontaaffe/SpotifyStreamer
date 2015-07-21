@@ -1,6 +1,6 @@
 package au.com.taaffe.spotifystreamer;
 
-import android.content.Intent;
+import android.app.Activity;
 import android.os.AsyncTask;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
@@ -27,8 +27,11 @@ import retrofit.RetrofitError;
  * A placeholder fragment containing a simple view.
  */
 public class SearchFragment extends Fragment {
+
     private ArtistAdapter artistAdapter;
     private final String LOG_TAG = SearchFragment.class.getSimpleName();
+
+    private SearchListener mSearchListener;
 
     public SearchFragment() {
     }
@@ -39,6 +42,33 @@ public class SearchFragment extends Fragment {
         super.onCreate(savedInstanceState);
         // retain this fragment
         setRetainInstance(true);
+    }
+
+    /**
+     * A callback interface that all activities containing this fragment must
+     * implement. This mechanism allows activities to be notified of item
+     * selections.
+     */
+    public interface SearchListener {
+        /**
+         * DetailFragmentCallback for when an item has been selected.
+         */
+        public void onSearchItemSelected(Bundle bundle);
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+
+        // Verify that the host activity implements the callback interface
+        try {
+            // Instantiate the NoticeDialogListener so we can send events to the host
+            mSearchListener = (SearchListener) activity;
+        } catch (ClassCastException e) {
+            // The activity doesn't implement the interface, throw exception
+            throw new ClassCastException(activity.toString()
+                    + " must implement NoticeDialogListener");
+        }
     }
 
 
@@ -83,17 +113,15 @@ public class SearchFragment extends Fragment {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Artist artist = (Artist) parent.getItemAtPosition(position);
                 if (artist != null) {
-                    // Add the artist id to the intent so the tracks view knows what tracks to show.
-                    Intent openTracksIntent = new Intent(getActivity(), TopTracksActivity.class);
+
 
                     Bundle extras = new Bundle();
                     extras.putString(TopTracksFragment.ARTIST_ID, artist.id);
                     extras.putString(TopTracksFragment.ARTIST_NAME, artist.name);
                     extras.putString(TopTracksFragment.ARTIST_IMAGE_URL, artist.images.get(0).url);
 
-                    openTracksIntent.putExtra(TopTracksFragment.ARTIST_INFO, extras);
-
-                    startActivity(openTracksIntent);
+                    // Use the implemented callback to decide what happens
+                    ((SearchListener) getActivity()).onSearchItemSelected(extras);
                 }
             }
         });

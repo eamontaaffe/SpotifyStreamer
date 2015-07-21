@@ -1,6 +1,6 @@
 package au.com.taaffe.spotifystreamer;
 
-import android.content.Intent;
+import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
@@ -47,12 +47,35 @@ public class TopTracksFragment extends Fragment {
 
     private TrackAdapter mTrackAdapter;
     private String mName;
-    int vibrantColor = -1;
-    int darkVibrantColor = -1;
+    private int mVibrantColor = -1;
+    private int mDarkVibrantColor = -1;
+    private TopTracksListener mTopTracksListener;
 
     ArrayList <ParcelableTrack> parcelableTracks = new ArrayList<ParcelableTrack>();
 
     public TopTracksFragment() {
+    }
+
+    public interface TopTracksListener {
+        /**
+         * DetailFragmentCallback for when an item has been selected.
+         */
+        public void onTopTrackItemSelected(Bundle bundle);
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+
+        // Verify that the host activity implements the callback interface
+        try {
+            // Instantiate the NoticeDialogListener so we can send events to the host
+            mTopTracksListener = (TopTracksListener) activity;
+        } catch (ClassCastException e) {
+            // The activity doesn't implement the interface, throw exception
+            throw new ClassCastException(activity.toString()
+                    + " must implement NoticeDialogListener");
+        }
     }
 
     // this method is only called once for this fragment
@@ -83,15 +106,15 @@ public class TopTracksFragment extends Fragment {
             );
 
 
+            Log.v(LOG_TAG,"onCreateView");
+            Bundle arguments = getArguments();
 
-            Intent intent = getActivity().getIntent();
 
             // If the intent has artist info then populate the list
-            if (intent != null && intent.hasExtra(ARTIST_INFO)) {
-                Bundle infoBundle = intent.getBundleExtra(ARTIST_INFO);
-                String id = infoBundle.getString(ARTIST_ID);
-                mName = infoBundle.getString(ARTIST_NAME);
-                String artistImageUrl = infoBundle.getString(ARTIST_IMAGE_URL);
+            if (arguments != null) {
+                String id = arguments.getString(ARTIST_ID);
+                mName = arguments.getString(ARTIST_NAME);
+                String artistImageUrl = arguments.getString(ARTIST_IMAGE_URL);
 
                 final ImageView artistImageView =
                         (ImageView) rootView.findViewById(R.id.artist_imageview);
@@ -119,16 +142,16 @@ public class TopTracksFragment extends Fragment {
 
                                         palette.getVibrantColor(R.color.primary);
 
-                                        vibrantColor = palette.getVibrantColor(R.color.primary);
+                                        mVibrantColor = palette.getVibrantColor(R.color.primary);
                                         ColorDrawable vibrantColorDrawable = new ColorDrawable(
-                                                vibrantColor);
-                                        darkVibrantColor =
+                                                mVibrantColor);
+                                        mDarkVibrantColor =
                                                 palette.getDarkVibrantColor(R.color.primary_dark);
 
                                         if (mActionBar != null && window != null) {
                                             mActionBar.setBackgroundDrawable(vibrantColorDrawable);
-                                            window.setStatusBarColor(darkVibrantColor);
-                                        }
+                                            window.setStatusBarColor(mDarkVibrantColor);
+                                            }
                                     }
                                 });
                             }
@@ -153,23 +176,19 @@ public class TopTracksFragment extends Fragment {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Track track = (Track) parent.getItemAtPosition(position);
                 if (track != null) {
-                    Intent playTrackIntent = new Intent(getActivity(), PlayerActivity.class);
+                    Bundle bundle = new Bundle();
+                    bundle.putParcelableArrayList(PlayerDialogFragment.TRACK_LIST, parcelableTracks);
+                    bundle.putInt(PlayerDialogFragment.TRACK_INDEX,position);
 
-                    // Rather than just passing a track id and having to do another API request,
-                    // just pass all the relevant info to increase speed and save data.
-                    playTrackIntent.putParcelableArrayListExtra(
-                            PlayerFragment.TRACK_LIST, parcelableTracks);
 
-                    playTrackIntent.putExtra(PlayerFragment.TRACK_INDEX, position);
-
-                    if( vibrantColor != -1 && darkVibrantColor != -1) {
+                    if( mVibrantColor != -1 && mDarkVibrantColor != -1) {
                         Bundle colors = new Bundle();
-                        colors.putInt(PlayerFragment.VIBRANT_COLOR, vibrantColor);
-                        colors.putInt(PlayerFragment.DARK_VIBRANT_COLOR, darkVibrantColor);
-                        playTrackIntent.putExtra(PlayerFragment.COLORS,colors);
+                        colors.putInt(PlayerDialogFragment.VIBRANT_COLOR, mVibrantColor);
+                        colors.putInt(PlayerDialogFragment.DARK_VIBRANT_COLOR, mDarkVibrantColor);
+                        bundle.putParcelable(PlayerDialogFragment.COLORS,colors);
                     }
 
-                    startActivity(playTrackIntent);
+                    mTopTracksListener.onTopTrackItemSelected(bundle);
                 }
             }
         });
@@ -236,7 +255,6 @@ public class TopTracksFragment extends Fragment {
                         Toast.LENGTH_SHORT
                 ).show();
             }
-
         }
     }
 }

@@ -1,17 +1,34 @@
 package au.com.taaffe.spotifystreamer;
 
+import android.support.v4.app.FragmentTransaction;
+
+import android.support.v4.app.FragmentManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
 
-public class PlayerActivity extends ActionBarActivity {
+public class PlayerActivity extends ActionBarActivity
+        implements PlayerDialogFragment.PlayerDialogFragmentListener{
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_player);
+
+        if(savedInstanceState == null) {
+
+            Bundle arguments = getIntent().getExtras();
+
+            PlayerDialogFragment newPlayerDialogFragment = new PlayerDialogFragment();
+
+            newPlayerDialogFragment.setArguments(arguments);
+
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.player_container, newPlayerDialogFragment)
+                    .commit();
+        }
     }
 
 
@@ -35,5 +52,16 @@ public class PlayerActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void replacePlayerDialogFragment(Bundle bundle) {
+        PlayerDialogFragment newPlayerDialogFragment = new PlayerDialogFragment();
+
+        newPlayerDialogFragment.setArguments(bundle);
+
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.player_container, newPlayerDialogFragment)
+                .commit();
     }
 }
