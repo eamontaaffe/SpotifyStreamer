@@ -16,9 +16,10 @@
         android:gravity="left" />
 
     <ListView
+        style="@style/SearchListStyle"
         android:paddingTop="8dp"
         android:paddingBottom="8dp"
-        android:id="@+id/listview"
+        android:id="@+id/artist_list_view"
         android:layout_below="@id/artist_search_view"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"

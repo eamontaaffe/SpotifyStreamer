@@ -66,6 +66,10 @@ public class PlayerDialogFragment extends DialogFragment {
 
     private PlayerDialogFragmentListener mPlayerDialogFragmentListener;
 
+    private Handler mHandler = new Handler();
+
+    private Runnable mUpdateScrubRunnable;
+
     public PlayerDialogFragment() {
     }
 
@@ -76,6 +80,7 @@ public class PlayerDialogFragment extends DialogFragment {
     public interface PlayerDialogFragmentListener {
 
         public void replacePlayerDialogFragment(Bundle bundle);
+        public void onLastTrackComplete();
     }
 
     @Override
@@ -182,10 +187,7 @@ public class PlayerDialogFragment extends DialogFragment {
 
     private void trackComplete() {
         if (mTrackIndex == mParcelableTrackList.size()-1) {
-            //TODO if it is the end of the last track it should terminate the player.
-            Toast.makeText(getActivity(),
-                    "This is the last track",Toast.LENGTH_SHORT)
-                    .show();
+            mPlayerDialogFragmentListener.onLastTrackComplete();
         }   else {
             playTrackIndex(mTrackIndex + 1);
         }
@@ -240,11 +242,14 @@ public class PlayerDialogFragment extends DialogFragment {
         ColorDrawable vibrantColorDrawable = new ColorDrawable(
                 mVibrantColor);
 
+
         if (mActionBar != null && window != null) {
             mActionBar.setBackgroundDrawable(vibrantColorDrawable);
 
-            //TODO handle lower API Levels
-            window.setStatusBarColor(mDarkVibrantColor);
+            if (android.os.Build.VERSION.SDK_INT >= 21) {
+                window.setStatusBarColor(mDarkVibrantColor);
+            }
+
         }
     }
 
@@ -264,8 +269,7 @@ public class PlayerDialogFragment extends DialogFragment {
     }
 
     private String formatMillis(int time) {
-        // TODO use a formatting string instead of hardcode
-        return String.format("%2d:%02d",
+        return String.format(getResources().getString(R.string.time_format),
                 TimeUnit.MINUTES.convert(time,TimeUnit.MILLISECONDS),
                 TimeUnit.SECONDS.convert(time,TimeUnit.MILLISECONDS));
     }
@@ -355,10 +359,6 @@ public class PlayerDialogFragment extends DialogFragment {
         ButterKnife.unbind(this);
         if (mMediaPlayer != null) mMediaPlayer.release();
     }
-
-    private Handler mHandler = new Handler();
-
-    private Runnable mUpdateScrubRunnable;
 
     public void startScrubUpdate(){
         mUpdateScrubRunnable = new Runnable() {

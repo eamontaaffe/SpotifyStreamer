@@ -15,6 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.AdapterView;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -27,6 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import jp.wasabeef.picasso.transformations.BlurTransformation;
+import jp.wasabeef.picasso.transformations.gpu.KuwaharaFilterTransformation;
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
 import kaaes.spotify.webapi.android.models.Track;
@@ -45,11 +48,19 @@ public class TopTracksFragment extends Fragment {
     public static final String ARTIST_NAME = "artist_name";
     public static final String ARTIST_IMAGE_URL = "artist_image_url";
 
+    private static final String ACTIVITY_COLORS = "activity_colors";
+    private static final String VIBRANT_COLOR = "vibrant_color";
+    private static final String DARK_VIBRANT_COLOR = "dark_vibrant_color";
+    private static final String ARTIST_BITMAP = "artist_bitmap";
+
     private TrackAdapter mTrackAdapter;
     private String mName;
     private int mVibrantColor = -1;
     private int mDarkVibrantColor = -1;
+    private String mArtistImageUrl;
     private TopTracksListener mTopTracksListener;
+    private Bitmap mArtistBitmap;
+    private FrameLayout mArtistImageFrameLayout;
 
     ArrayList <ParcelableTrack> parcelableTracks = new ArrayList<ParcelableTrack>();
 
@@ -93,6 +104,22 @@ public class TopTracksFragment extends Fragment {
         View rootView = inflater.inflate(R.layout.fragment_top_tracks, container, false);
 
         final ListView trackList = (ListView) rootView.findViewById(R.id.track_list);
+        mArtistImageFrameLayout = (FrameLayout) rootView.findViewById(R.id.artist_image_frame_layout);
+
+        if(savedInstanceState != null && savedInstanceState.containsKey(ACTIVITY_COLORS)) {
+            Bundle colors = savedInstanceState.getBundle(ACTIVITY_COLORS);
+            setActivityColors(colors.getInt(VIBRANT_COLOR),colors.getInt(DARK_VIBRANT_COLOR));
+        }
+        if(savedInstanceState != null && savedInstanceState.containsKey(ARTIST_BITMAP)) {
+            final ImageView artistImageView =
+                    (ImageView) rootView.findViewById(R.id.artist_imageview);
+
+            mArtistBitmap = savedInstanceState.getParcelable(ARTIST_BITMAP);
+
+            artistImageView.setImageBitmap(mArtistBitmap);
+        } else if (savedInstanceState != null) {
+            mArtistImageFrameLayout.setVisibility(View.GONE);
+        }
 
         // If the trackAdapter is null than it is not being restored from a configuration change
         // so we need to initialise the top tracks list and adapter
@@ -114,53 +141,17 @@ public class TopTracksFragment extends Fragment {
             if (arguments != null) {
                 String id = arguments.getString(ARTIST_ID);
                 mName = arguments.getString(ARTIST_NAME);
-                String artistImageUrl = arguments.getString(ARTIST_IMAGE_URL);
 
-                final ImageView artistImageView =
-                        (ImageView) rootView.findViewById(R.id.artist_imageview);
 
-                Picasso.with(getActivity())
-                        .load(artistImageUrl)
-                        .fit()
-                        .centerCrop()
-                        .into(artistImageView, new Callback() {
-                            @Override
-                            public void onSuccess() {
-                                Bitmap bitmap =
-                                        ((BitmapDrawable)artistImageView.getDrawable()).getBitmap();
-                                Log.v(LOG_TAG, "Picasso Callback OnSuccess");
-                                Palette.generateAsync(bitmap, new Palette.PaletteAsyncListener() {
-                                    private String LOG_TAG =
-                                            Palette.PaletteAsyncListener.class.getSimpleName();
+                if (arguments.containsKey(ARTIST_IMAGE_URL)) {
+                    final ImageView artistImageView =
+                            (ImageView) rootView.findViewById(R.id.artist_imageview);
+                    mArtistImageUrl = arguments.getString(ARTIST_IMAGE_URL);
 
-                                    @Override
-                                    public void onGenerated(Palette palette) {
-                                        android.support.v7.app.ActionBar mActionBar =
-                                                ((ActionBarActivity)getActivity())
-                                                        .getSupportActionBar();
-                                        Window window = getActivity().getWindow();
-
-                                        palette.getVibrantColor(R.color.primary);
-
-                                        mVibrantColor = palette.getVibrantColor(R.color.primary);
-                                        ColorDrawable vibrantColorDrawable = new ColorDrawable(
-                                                mVibrantColor);
-                                        mDarkVibrantColor =
-                                                palette.getDarkVibrantColor(R.color.primary_dark);
-
-                                        if (mActionBar != null && window != null) {
-                                            mActionBar.setBackgroundDrawable(vibrantColorDrawable);
-                                            window.setStatusBarColor(mDarkVibrantColor);
-                                            }
-                                    }
-                                });
-                            }
-
-                            @Override
-                            public void onError() {
-                                Log.d(LOG_TAG, "Picasso Callback OnFailure");
-                            }
-                        });
+                    loadImageIntoView(mArtistImageUrl,artistImageView);
+                } else {
+                    mArtistImageFrameLayout.setVisibility(View.GONE);
+                }
 
 
 
@@ -169,6 +160,7 @@ public class TopTracksFragment extends Fragment {
             }
 
         }
+
         trackList.setAdapter(mTrackAdapter);
 
         trackList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -178,14 +170,14 @@ public class TopTracksFragment extends Fragment {
                 if (track != null) {
                     Bundle bundle = new Bundle();
                     bundle.putParcelableArrayList(PlayerDialogFragment.TRACK_LIST, parcelableTracks);
-                    bundle.putInt(PlayerDialogFragment.TRACK_INDEX,position);
+                    bundle.putInt(PlayerDialogFragment.TRACK_INDEX, position);
 
 
-                    if( mVibrantColor != -1 && mDarkVibrantColor != -1) {
+                    if (mVibrantColor != -1 && mDarkVibrantColor != -1) {
                         Bundle colors = new Bundle();
                         colors.putInt(PlayerDialogFragment.VIBRANT_COLOR, mVibrantColor);
                         colors.putInt(PlayerDialogFragment.DARK_VIBRANT_COLOR, mDarkVibrantColor);
-                        bundle.putParcelable(PlayerDialogFragment.COLORS,colors);
+                        bundle.putParcelable(PlayerDialogFragment.COLORS, colors);
                     }
 
                     mTopTracksListener.onTopTrackItemSelected(bundle);
@@ -196,12 +188,81 @@ public class TopTracksFragment extends Fragment {
         return rootView;
     }
 
+    public void loadImageIntoView(String imageUrl, final ImageView view) {
+
+        Picasso.with(getActivity())
+                .load(imageUrl)
+                .into(view, new Callback() {
+                    @Override
+                    public void onSuccess() {
+                        mArtistBitmap =
+                                ((BitmapDrawable) view.getDrawable()).getBitmap();
+                        Log.v(LOG_TAG, "Picasso Callback OnSuccess");
+                        Palette.generateAsync(mArtistBitmap, new Palette.PaletteAsyncListener() {
+                            private String LOG_TAG =
+                                    Palette.PaletteAsyncListener.class.getSimpleName();
+
+                            @Override
+                            public void onGenerated(Palette palette) {
+                                setActivityColors(palette.getVibrantColor(R.color.primary),
+                                        palette.getDarkVibrantColor(R.color.primary_dark));
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError() {
+                        Log.d(LOG_TAG, "Picasso Callback OnFailure");
+                    }
+                });
+    }
+
+    public void setActivityColors(int vibrantColor, int darkVibrantColor) {
+        mVibrantColor = vibrantColor;
+        mDarkVibrantColor = darkVibrantColor;
+
+        ActionBarActivity activity = (ActionBarActivity) getActivity();
+
+        if (activity != null) {
+            android.support.v7.app.ActionBar mActionBar = activity.getSupportActionBar();
+            Window window = getActivity().getWindow();
+
+            ColorDrawable vibrantColorDrawable = new ColorDrawable(
+                    mVibrantColor);
+
+            if (mActionBar != null && window != null) {
+                mActionBar.setBackgroundDrawable(vibrantColorDrawable);
+
+                if (android.os.Build.VERSION.SDK_INT >= 21) {
+                    window.setStatusBarColor(mDarkVibrantColor);
+                }
+            }
+        }
+    }
+
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         if (mName != null) {
             ((ActionBarActivity)getActivity()).getSupportActionBar().setSubtitle(mName);
         }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+
+        if (mVibrantColor != -1 && mDarkVibrantColor != -1) {
+            Bundle colors = new Bundle();
+            colors.putInt(VIBRANT_COLOR, mVibrantColor);
+            colors.putInt(DARK_VIBRANT_COLOR, mDarkVibrantColor);
+            outState.putBundle(ACTIVITY_COLORS, colors);
+        }
+
+        if(mArtistBitmap != null) {
+            outState.putParcelable(ARTIST_BITMAP, mArtistBitmap);
+        }
+
+        super.onSaveInstanceState(outState);
     }
 
     private class FetchTrackData extends AsyncTask<String, Void, Void> {

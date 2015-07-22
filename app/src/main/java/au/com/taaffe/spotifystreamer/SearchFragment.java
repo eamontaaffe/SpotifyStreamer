@@ -22,16 +22,20 @@ import kaaes.spotify.webapi.android.models.Artist;
 import kaaes.spotify.webapi.android.models.ArtistsPager;
 import retrofit.RetrofitError;
 
-
 /**
  * A placeholder fragment containing a simple view.
  */
 public class SearchFragment extends Fragment {
 
+    private final static String SELECTED_KEY = "selected_key";
+
     private ArtistAdapter artistAdapter;
     private final String LOG_TAG = SearchFragment.class.getSimpleName();
 
     private SearchListener mSearchListener;
+    private ListView mListView;
+    private int mPosition = ListView.INVALID_POSITION;
+
 
     public SearchFragment() {
     }
@@ -93,7 +97,7 @@ public class SearchFragment extends Fragment {
         });
 
         // Get a reference to the ListView, and attach this artistAdapter to it.
-        ListView listView = (ListView) rootView.findViewById(R.id.listview);
+        mListView = (ListView) rootView.findViewById(R.id.artist_list_view);
 
         if (artistAdapter == null) {
             List<Artist> artists = new ArrayList<Artist>();
@@ -106,9 +110,9 @@ public class SearchFragment extends Fragment {
 
         }
 
-        listView.setAdapter(artistAdapter);
+        mListView.setAdapter(artistAdapter);
 
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Artist artist = (Artist) parent.getItemAtPosition(position);
@@ -118,15 +122,30 @@ public class SearchFragment extends Fragment {
                     Bundle extras = new Bundle();
                     extras.putString(TopTracksFragment.ARTIST_ID, artist.id);
                     extras.putString(TopTracksFragment.ARTIST_NAME, artist.name);
-                    extras.putString(TopTracksFragment.ARTIST_IMAGE_URL, artist.images.get(0).url);
+                    if (artist.images.size() > 0) {
+                        extras.putString(TopTracksFragment.ARTIST_IMAGE_URL, artist.images.get(0).url);
+                    }
 
                     // Use the implemented callback to decide what happens
-                    ((SearchListener) getActivity()).onSearchItemSelected(extras);
+                    mSearchListener.onSearchItemSelected(extras);
+                    mPosition = position;
                 }
             }
         });
 
+        if (savedInstanceState != null && savedInstanceState.containsKey(SELECTED_KEY)) {
+            Log.v(LOG_TAG,"savedInstanceState contains SELECTED_KEY");
+            mPosition = savedInstanceState.getInt(SELECTED_KEY);
+        }
+
         return rootView;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        mListView.smoothScrollToPosition(mPosition);
+
     }
 
     void updateArtistList(String query) {
@@ -135,6 +154,8 @@ public class SearchFragment extends Fragment {
     }
 
     void updateArtistAdapter(ArtistsPager results) {
+        ListView artistListView = (ListView) getActivity().findViewById(R.id.artist_list_view);
+        artistListView.setItemChecked(ListView.INVALID_POSITION, true);
         artistAdapter.clear();
         for(Artist result: results.artists.items) {
             artistAdapter.add(result);
@@ -192,4 +213,12 @@ public class SearchFragment extends Fragment {
         }
     }
 
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+
+        if (mPosition != ListView.INVALID_POSITION) {
+            outState.putInt(SELECTED_KEY, mPosition);
+        }
+        super.onSaveInstanceState(outState);
+    }
 }

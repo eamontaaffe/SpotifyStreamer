@@ -64,4 +64,9 @@ public class PlayerActivity extends ActionBarActivity
                 .replace(R.id.player_container, newPlayerDialogFragment)
                 .commit();
     }
+
+    @Override
+    public void onLastTrackComplete() {
+        this.finish();
+    }
 }

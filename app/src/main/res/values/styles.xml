@@ -15,4 +15,8 @@
 
     </style>
 
+    <style name="SearchListStyle.ListStyle">
+        <item name="android:choiceMode">singleChoice</item>
+    </style>
+
 </resources>

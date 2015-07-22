@@ -125,7 +125,16 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
         PlayerDialogFragment newPlayerDialogFragment = new PlayerDialogFragment();
         newPlayerDialogFragment.setArguments(bundle);
         newPlayerDialogFragment.show(fragmentManager, PLAYERDIALOGFRAGMENT_TAG);
+    }
 
+    @Override
+    public void onLastTrackComplete() {
+        Log.v(LOG_TAG, "onlastTrackComplete");
 
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        DialogFragment playerFragment = (android.support.v4.app.DialogFragment)
+                fragmentManager.findFragmentByTag(PLAYERDIALOGFRAGMENT_TAG);
+
+        playerFragment.dismiss();
     }
 }

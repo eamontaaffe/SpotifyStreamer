@@ -7,13 +7,15 @@
     android:orientation="vertical">
 
     <FrameLayout
+        android:id="@+id/artist_image_frame_layout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
         <ImageView
             android:id="@+id/artist_imageview"
             android:layout_width="fill_parent"
-            android:layout_height="fill_parent" />
+            android:layout_height="fill_parent"
+            android:scaleType="centerCrop"/>
     </FrameLayout>
 
     <ListView
