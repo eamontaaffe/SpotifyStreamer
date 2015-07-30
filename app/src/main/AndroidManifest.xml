@@ -39,6 +39,9 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="au.com.taaffe.spotifystreamer.TopTracksActivity" />
         </activity>
+
+        <service android:name=".service.PlayerService" />
+
     </application>
 
 </manifest>

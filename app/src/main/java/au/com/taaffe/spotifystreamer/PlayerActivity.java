@@ -1,12 +1,13 @@
 package au.com.taaffe.spotifystreamer;
 
-import android.support.v4.app.FragmentTransaction;
+import android.content.Intent;
 
-import android.support.v4.app.FragmentManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+
+import au.com.taaffe.spotifystreamer.service.PlayerService;
 
 
 public class PlayerActivity extends ActionBarActivity
@@ -23,11 +24,15 @@ public class PlayerActivity extends ActionBarActivity
 
             PlayerDialogFragment newPlayerDialogFragment = new PlayerDialogFragment();
 
-            newPlayerDialogFragment.setArguments(arguments);
+//            newPlayerDialogFragment.setArguments(arguments);
 
             getSupportFragmentManager().beginTransaction()
                     .add(R.id.player_container, newPlayerDialogFragment)
                     .commit();
+
+            Intent playerServiceIntent = new Intent(this, PlayerService.class);
+            playerServiceIntent.putExtras(arguments);
+            startService(playerServiceIntent);
         }
     }
 
