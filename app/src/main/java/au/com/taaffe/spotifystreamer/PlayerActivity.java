@@ -24,15 +24,11 @@ public class PlayerActivity extends ActionBarActivity
 
             PlayerDialogFragment newPlayerDialogFragment = new PlayerDialogFragment();
 
-//            newPlayerDialogFragment.setArguments(arguments);
+            newPlayerDialogFragment.setArguments(arguments);
 
             getSupportFragmentManager().beginTransaction()
                     .add(R.id.player_container, newPlayerDialogFragment)
                     .commit();
-
-            Intent playerServiceIntent = new Intent(this, PlayerService.class);
-            playerServiceIntent.putExtras(arguments);
-            startService(playerServiceIntent);
         }
     }
 

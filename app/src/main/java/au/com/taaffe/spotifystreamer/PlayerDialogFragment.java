@@ -2,7 +2,11 @@ package au.com.taaffe.spotifystreamer;
 
 import android.app.Activity;
 import android.app.Dialog;
-import android.media.AudioManager;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.ServiceConnection;
+import android.graphics.Bitmap;
+import android.os.IBinder;
 import android.support.v4.app.DialogFragment;
 import android.content.Intent;
 import android.graphics.drawable.ColorDrawable;
@@ -18,15 +22,15 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
+
 import android.os.Handler;
 
 import com.squareup.picasso.Picasso;
 
+import au.com.taaffe.spotifystreamer.service.PlayerService;
+import au.com.taaffe.spotifystreamer.service.PlayerService2;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
@@ -41,6 +45,8 @@ public class PlayerDialogFragment extends DialogFragment {
 
     public static final String TRACK_LIST = "track_list";
     public static final String TRACK_INDEX = "track_index";
+    private static String PLAY = "play";
+    private static String PAUSE = "pause";
 
     private static final int UPDATE_PERIOD = 1000/24;
 
@@ -56,6 +62,9 @@ public class PlayerDialogFragment extends DialogFragment {
     public static final String COLORS = "colors";
     public static final String VIBRANT_COLOR = "vibrant_color";
     public static final String DARK_VIBRANT_COLOR = "dark_vibrant_color";
+
+    private PlayerService mPlayerService;
+    private boolean mBound = false;
 
     private MediaPlayer mMediaPlayer;
     private ArrayList<ParcelableTrack> mParcelableTrackList;
@@ -106,128 +115,79 @@ public class PlayerDialogFragment extends DialogFragment {
 
         ButterKnife.bind(this, rootView);
 
-        Bundle arguments = getArguments();
-
-        if (arguments != null) {
-            parseArguments(arguments);
-        }
+        parseArguments(getArguments());
 
         return rootView;
     }
 
-    private void parseArguments(Bundle arguments) {
-        Bundle colors = arguments.getBundle(COLORS);
+    @Override
+    public void onStart() {
+        super.onStart();
+        Intent intent = new Intent(getActivity(),PlayerService2.class);
+        intent.setAction(PlayerService2.ACTION_PLAY);
+        intent.putExtras(getArguments());
+        getActivity().startService(intent);
+        getActivity().bindService(intent, mConnection, Context.BIND_IMPORTANT);
+    }
 
-        if (colors != null) {
-            updateActivityColors(colors);
+    /** Defines callbacks for service binding, passed to bindService() */
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            PlayerService.PlayerBinder binder = (PlayerService.PlayerBinder) service;
+            mPlayerService = binder.getService();
+            updatePlayerView();
+            mBound = true;
+            binder.setListener(new PlayerService.PlayerServiceListener() {
+                @Override
+                public void updateTrack() {
+                    updatePlayerView();
+                }
+                @Override
+                public void updateStatus() {
+                    updatePlayPause();
+                }
+
+                @Override
+                public void updateAlbumImage(Bitmap albumImage) {
+                    mAlbumImageView.setImageBitmap(albumImage);
+                }
+            });
         }
 
-        mParcelableTrackList = arguments.getParcelableArrayList(TRACK_LIST);
-        mTrackIndex = arguments.getInt(TRACK_INDEX, 5);
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
 
-        if (mParcelableTrackList != null && mTrackIndex != -1) {
-            initialisePlayer();
+
+    };
+
+    private void parseArguments(Bundle arguments) {
+        if (arguments == null)
+            return;
+
+        if (arguments.containsKey(COLORS)) {
+            Bundle colors = arguments.getBundle(COLORS);
+            updateActivityColors(colors);
         }
     }
 
-    private void initialisePlayer(){
-        ParcelableTrack track = mParcelableTrackList.get(mTrackIndex);
-        Log.v(LOG_TAG,track.toString());
-        mArtistTextView.setText(track.artist);
-        mAlbumTextView.setText(track.album);
-        mTrackTextView.setText(track.track_name);
+    private void updatePlayerView(){
 
-        Log.v(LOG_TAG, "Index: " + Integer.toString(mTrackIndex));
-        Log.v(LOG_TAG, "Current Track: " + track.track_name);
-
-        for (int i = 0; i < mParcelableTrackList.size(); i++) {
-            Log.v(LOG_TAG, mParcelableTrackList.get(i).track_name);
-        }
+        mArtistTextView.setText(mPlayerService.getArtistText());
+        mAlbumTextView.setText(mPlayerService.getAlbumText());
+        mTrackTextView.setText(mPlayerService.getTrackText());
 
         Picasso.with(getActivity())
-                .load(track.track_image_url)
+                .load(mPlayerService.getAlbumImageUrl())
                 .fit()
                 .centerCrop()
                 .into(mAlbumImageView);
 
-        String previewUrl = track.track_preview_url;
-
-        mMediaPlayer = new MediaPlayer();
-        mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-
-        try {
-            mMediaPlayer.setDataSource(previewUrl);
-        } catch (IllegalArgumentException e) {
-            Log.e(LOG_TAG, e.getMessage());
-        } catch (IOException e) {
-            Log.e(LOG_TAG, e.getMessage());
-        }
-
-        mMediaPlayer.setOnPreparedListener(mOnPreparedListener);
-
-        // Since the preparation is asynchronous we need to listen for error so that they can
-        // be handled rather than crashing the application.
-        mMediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
-            @Override
-            public boolean onError(MediaPlayer mp, int what, int extra) {
-                Log.e(LOG_TAG, String.format("Error(%s%s)", what, extra));
-                return false;
-            }
-        });
-
-        mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mp) {
-                trackComplete();
-            }
-        });
-
-        mMediaPlayer.prepareAsync();
-    }
-
-    private void trackComplete() {
-        if (mTrackIndex == mParcelableTrackList.size()-1) {
-            mPlayerDialogFragmentListener.onLastTrackComplete();
-        }   else {
-            playTrackIndex(mTrackIndex + 1);
-        }
-    }
-
-    MediaPlayer.OnPreparedListener mOnPreparedListener = new MediaPlayer.OnPreparedListener() {
-        @Override
-        public void onPrepared(MediaPlayer mp) {
-            Log.v(LOG_TAG, Integer.toString(mp.getDuration()));
-            updateTime();
-
-            // Set the upperbound of the scrub bar now that you know what it is
-            mScrubBar.setMax(mp.getDuration());
-
-            mScrubBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-                @Override
-                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                    if (fromUser) {
-                        mMediaPlayer.seekTo(progress);
-                    }
-                    mCurrentTimeTextView.setText(
-                            formatMillis(mMediaPlayer.getCurrentPosition()));
-                }
-
-                @Override
-                public void onStartTrackingTouch(SeekBar seekBar) {
-
-                }
-
-                @Override
-                public void onStopTrackingTouch(SeekBar seekBar) {
-
-                }
-            });
-
-            // TODO it shouldn't start the player if it was purposely paused
-            startPlayer();
-
-            startScrubUpdate();
-        }
     };
 
     private void updateActivityColors(Bundle colors) {
@@ -261,90 +221,58 @@ public class PlayerDialogFragment extends DialogFragment {
         return newDialog;
     }
 
-    private void updateTime() {
-        mTotalTimeTextView.setText(
-                formatMillis(mMediaPlayer.getDuration()));
-        mCurrentTimeTextView.setText(
-                formatMillis(mMediaPlayer.getCurrentPosition()));
-    }
+//    private void updateTime() {
+//        mTotalTimeTextView.setText(
+//                formatMillis(mMediaPlayer.getDuration()));
+//        mCurrentTimeTextView.setText(
+//                formatMillis(mMediaPlayer.getCurrentPosition()));
+//    }
 
-    private String formatMillis(int time) {
-        return String.format(getResources().getString(R.string.time_format),
-                TimeUnit.MINUTES.convert(time,TimeUnit.MILLISECONDS),
-                TimeUnit.SECONDS.convert(time,TimeUnit.MILLISECONDS));
-    }
-
-    private void startPlayer() {
-        Log.v(LOG_TAG,"startPlayer()");
-        mMediaPlayer.start();
-        mPlayPauseButton.setImageDrawable(
-                getResources().getDrawable(android.R.drawable.ic_media_pause));
-    }
-
-    private void pausePlayer() {
-        Log.v(LOG_TAG,"pausePlayer()");
-        mMediaPlayer.pause();
-        mPlayPauseButton.setImageDrawable(
-                getResources().getDrawable(android.R.drawable.ic_media_play));
+//    private String formatMillis(int time) {
+//        return String.format(getResources().getString(R.string.time_format),
+//                TimeUnit.MINUTES.convert(time,TimeUnit.MILLISECONDS),
+//                TimeUnit.SECONDS.convert(time,TimeUnit.MILLISECONDS));
+//    }
+    private void updatePlayPause(){
+        if(mPlayerService.isPlaying()) {
+            mPlayPauseButton.setImageDrawable(
+                    getResources().getDrawable(android.R.drawable.ic_media_pause));
+            mPlayPauseButton.setTag(PLAY);
+        } else {
+            mPlayPauseButton.setImageDrawable(
+                    getResources().getDrawable(android.R.drawable.ic_media_play));
+            mPlayPauseButton.setTag(PAUSE);
+        }
     }
 
     @OnClick(R.id.play_pause_button)
     public void onPlayPauseButton(View view) {
-        if(mMediaPlayer != null && mMediaPlayer.isPlaying()) {
-            pausePlayer();
-        } else if (mMediaPlayer != null) {
-            startPlayer();
+        if(!mBound && mPlayerService != null) {
+            return;
+        }
+
+        if(mPlayPauseButton.getTag() == PLAY) {
+            mPlayerService.onPause();
+        } else if (mPlayPauseButton.getTag() == PAUSE){
+            mPlayerService.onPlay();
         }
     }
 
     @OnClick(R.id.next_button)
     public void onNextButton(View view) {
-        if (mTrackIndex == mParcelableTrackList.size()-1) {
-            Toast.makeText(getActivity(),
-                    "This is the last track",Toast.LENGTH_SHORT)
-                    .show();
-        }   else {
-            playTrackIndex(mTrackIndex + 1);
+        Log.v(LOG_TAG,"onNextButton");
+        if(!mBound && mPlayerService != null) {
+            return;
         }
+        mPlayerService.onNext();
     }
 
     @OnClick(R.id.previous_button)
     public void onPreviousButton(View view) {
-        if (mTrackIndex == 0) {
-            Toast.makeText(getActivity(),
-                    "This is the first track",Toast.LENGTH_SHORT)
-                    .show();
-        }   else {
-            playTrackIndex(mTrackIndex -
-                    1);
-        }
-    }
-
-    public void playTrackIndex(int trackIndex) {
-        if (mParcelableTrackList == null) {
+        if(!mBound && mPlayerService != null) {
             return;
         }
-
-        Intent playTrackIntent = new Intent(getActivity(), PlayerActivity.class);
-
-        Bundle bundle = new Bundle();
-
-        bundle.putParcelableArrayList(
-                TRACK_LIST, mParcelableTrackList);
-
-        if( mVibrantColor != -1 && mDarkVibrantColor != -1) {
-            Bundle colors = new Bundle();
-            colors.putInt(PlayerDialogFragment.VIBRANT_COLOR, mVibrantColor);
-            colors.putInt(PlayerDialogFragment.DARK_VIBRANT_COLOR, mDarkVibrantColor);
-            bundle.putBundle(PlayerDialogFragment.COLORS, colors);
-        }
-
-        bundle.putInt(
-                TRACK_INDEX,
-                trackIndex);
-
-        mPlayerDialogFragmentListener.replacePlayerDialogFragment(bundle);
-//        getActivity().finish();
+        mPlayerService.onPrevious();
     }
 
     @Override
@@ -357,41 +285,50 @@ public class PlayerDialogFragment extends DialogFragment {
     public void onDestroyView() {
         super.onDestroyView();
         ButterKnife.unbind(this);
-        if (mMediaPlayer != null) mMediaPlayer.release();
+        if (mBound) {
+            getActivity().unbindService(mConnection);
+            mBound = false;
+        }
     }
 
-    public void startScrubUpdate(){
-        mUpdateScrubRunnable = new Runnable() {
-            @Override
-            public void run() {
-                if(mMediaPlayer != null){
-                    int mCurrentPosition = mMediaPlayer.getCurrentPosition();
-                    mScrubBar.setProgress(mCurrentPosition);
-                }
-                mHandler.postDelayed(this, UPDATE_PERIOD);
-            }
-        };
-
-        getActivity().runOnUiThread(mUpdateScrubRunnable);
-    }
+//    public void startScrubUpdate(){
+//        mUpdateScrubRunnable = new Runnable() {
+//            @Override
+//            public void run() {
+//                if(mMediaPlayer != null){
+//                    int mCurrentPosition = mMediaPlayer.getCurrentPosition();
+//                    mScrubBar.setProgress(mCurrentPosition);
+//                }
+//                mHandler.postDelayed(this, UPDATE_PERIOD);
+//            }
+//        };
+//
+//        getActivity().runOnUiThread(mUpdateScrubRunnable);
+//    }
 
     @Override
     public void onPause() {
         super.onPause();
-
-        if(mUpdateScrubRunnable != null) {
-            mHandler.removeCallbacks(mUpdateScrubRunnable);
-            super.onPause();
-        }
+//
+//        if(mUpdateScrubRunnable != null) {
+//            mHandler.removeCallbacks(mUpdateScrubRunnable);
+//            super.onPause();
+//        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
+//
+//        if(mUpdateScrubRunnable != null) {
+//            mHandler.postDelayed(mUpdateScrubRunnable, UPDATE_PERIOD);
+//            super.onResume();
+//        }
+    }
 
-        if(mUpdateScrubRunnable != null) {
-            mHandler.postDelayed(mUpdateScrubRunnable, UPDATE_PERIOD);
-            super.onResume();
-        }
+    @Override
+    public void onStop() {
+        super.onStop();
+        mPlayerService.stopSelf();
     }
 }
