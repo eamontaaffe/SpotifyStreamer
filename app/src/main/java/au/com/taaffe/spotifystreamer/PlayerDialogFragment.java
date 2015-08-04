@@ -30,7 +30,7 @@ import android.os.Handler;
 import com.squareup.picasso.Picasso;
 
 import au.com.taaffe.spotifystreamer.service.PlayerService;
-import au.com.taaffe.spotifystreamer.service.PlayerService2;
+import au.com.taaffe.spotifystreamer.service.PlayerServiceOLD;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
@@ -123,8 +123,8 @@ public class PlayerDialogFragment extends DialogFragment {
     @Override
     public void onStart() {
         super.onStart();
-        Intent intent = new Intent(getActivity(),PlayerService2.class);
-        intent.setAction(PlayerService2.ACTION_PLAY);
+        Intent intent = new Intent(getActivity(),PlayerService.class);
+        intent.setAction(PlayerService.ACTION_PLAY);
         intent.putExtras(getArguments());
         getActivity().startService(intent);
         getActivity().bindService(intent, mConnection, Context.BIND_IMPORTANT);
@@ -178,15 +178,9 @@ public class PlayerDialogFragment extends DialogFragment {
 
     private void updatePlayerView(){
 
-        mArtistTextView.setText(mPlayerService.getArtistText());
-        mAlbumTextView.setText(mPlayerService.getAlbumText());
-        mTrackTextView.setText(mPlayerService.getTrackText());
-
-        Picasso.with(getActivity())
-                .load(mPlayerService.getAlbumImageUrl())
-                .fit()
-                .centerCrop()
-                .into(mAlbumImageView);
+        mArtistTextView.setText(mPlayerService.getArtist());
+        mAlbumTextView.setText(mPlayerService.getAlbum());
+        mTrackTextView.setText(mPlayerService.getTrack());
 
     };
 
@@ -329,6 +323,5 @@ public class PlayerDialogFragment extends DialogFragment {
     @Override
     public void onStop() {
         super.onStop();
-        mPlayerService.stopSelf();
     }
 }

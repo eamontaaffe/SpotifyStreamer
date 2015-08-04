@@ -41,8 +41,8 @@
                 android:value="au.com.taaffe.spotifystreamer.TopTracksActivity" />
         </activity>
 
+        <service android:name=".service.PlayerServiceOLD" />
         <service android:name=".service.PlayerService" />
-        <service android:name=".service.PlayerService2" />
 
     </application>
 

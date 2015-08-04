@@ -58,6 +58,9 @@ public class PlayerService extends Service {
         public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
             Log.v(LOG_TAG,"onBitmapLoaded");
             mAlbumImage = bitmap;
+            if (mListener != null) {
+                mListener.updateAlbumImage(mAlbumImage);
+            }
             createNotification();
         }
 
@@ -216,6 +219,11 @@ public class PlayerService extends Service {
         return pendingIntent;
     }
 
+
+    ////////////////////////////////////////////////////////////////
+    ///////// Code for interfacing with a view /////////////////////
+    ////////////////////////////////////////////////////////////////
+
     public class PlayerBinder extends Binder {
         public PlayerService getService() {
             // Return this instance of LocalService so clients can call public methods
@@ -253,5 +261,32 @@ public class PlayerService extends Service {
         Log.v(LOG_TAG,"getTrack: " + mPlaylist.get(mTrackId).track_name);
         return mPlaylist.get(mTrackId).track_name;
     }
-    public Bitmap getAlbumImage() { return mAlbumImage; }
+    public boolean isPlaying(){
+        if(mMediaPlayer != null) {
+            return mMediaPlayer.isPlaying();
+        }
+        return false;
+    }
+    public void onPlay(){
+        if(mMediaPlayer != null) {
+            mMediaPlayer.start();
+            if(mListener != null) {
+                mListener.updateStatus();
+            }
+        }
+    }
+    public void onPause(){
+        if (mMediaPlayer != null) {
+            mMediaPlayer.pause();
+            if(mListener != null) {
+                mListener.updateStatus();
+            }
+        }
+    }
+    public void onNext(){
+        //TODO onNext
+    }
+    public void onPrevious() {
+        //TODO onNext
+    }
 }
