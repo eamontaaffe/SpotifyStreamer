@@ -20,6 +20,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
@@ -57,6 +58,7 @@ public class PlayerService extends Service {
     private int mTrackId = INVALID_TRACK_ID;
     private PlayerServiceListener mListener;
     private MediaControllerCompat.TransportControls mTransportControls;
+    private Context mContext;
 
     private Target mTarget = new Target() {
         @Override
@@ -137,6 +139,7 @@ public class PlayerService extends Service {
     }
 
     public void initMediaSession() {
+        mContext = (Context) this;
         mMediaPlayer = new MediaPlayer();
         mSession = new MediaSessionCompat(this,
                 MEDIA_SESSION_TAG,
@@ -206,21 +209,34 @@ public class PlayerService extends Service {
         public void onPlay() {
             //TODO onPlay
             Log.v(LOG_TAG, "onPlay");
-
+            mMediaPlayer.start();
             loadTrack();
+            if(mListener != null)
+                mListener.updateStatus();
+
         }
 
         @Override
         public void onPause() {
             //TODO onPause
             Log.v(LOG_TAG, "onPlause");
+            mMediaPlayer.pause();
             loadTrack();
+            if(mListener != null)
+                mListener.updateStatus();
         }
 
         @Override
         public void onSkipToNext() {
-            //TODO onSkipToNext
-            mTrackId ++;
+            if (mPlaylist.size() > mTrackId + 1) {
+                mMediaPlayer.reset();
+                if(mListener != null) {
+                    mListener.updateStatus();
+                }
+                playTrack(mTrackId ++);
+            } else {
+                Toast.makeText(mContext, "This is the last track!", Toast.LENGTH_SHORT).show();
+            }
             loadTrack();
             Log.v(LOG_TAG, "onSkipToNext, mTrackId: " + mTrackId);
         }
@@ -230,7 +246,29 @@ public class PlayerService extends Service {
             //TODO onSkipToPrevious
             mTrackId--;
             loadTrack();
-            Log.v(LOG_TAG, "onSkipToNext, mTrackId: " + mTrackId);
+            Log.v(LOG_TAG, "onSkipToPrevious, mTrackId: " + mTrackId);
+        }
+
+        public void playTrack(int trackId) {
+            mMediaPlayer.reset();
+            mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+
+            Log.v(LOG_TAG,"trackIndex is: " + trackId);
+            Log.v(LOG_TAG,"mPlaylist.size(): " + mPlaylist.size());
+
+            try {
+                mMediaPlayer.setDataSource(getStreamUrl());
+                mMediaPlayer.prepareAsync();
+            } catch (IllegalArgumentException e) {
+                Log.e(LOG_TAG, e.getMessage());
+            } catch (IOException e) {
+                Log.e(LOG_TAG, e.getMessage());
+            }
+
+            // if a view is listening tell it to update itself
+            if (mListener != null) {
+                mListener.updateTrack();
+            }
         }
     };
 
@@ -319,12 +357,13 @@ public class PlayerService extends Service {
     }
     public boolean isPlaying(){
         if(mMediaPlayer != null) {
+            Log.v(LOG_TAG,"isPlaying: " + mMediaPlayer.isPlaying());
             return mMediaPlayer.isPlaying();
         }
         return false;
     }
     public void onPlay(){
-        mTransportControls.pause();
+        mTransportControls.play();
     }
     public void onPause(){
         mTransportControls.pause();
