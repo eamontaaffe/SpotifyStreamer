@@ -1,25 +1,30 @@
 package au.com.taaffe.spotifystreamer.service;
 
-import android.annotation.TargetApi;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.session.MediaController;
-import android.media.session.MediaSession;
-import android.media.session.MediaSessionManager;
+import android.support.v7.app.NotificationCompat;
+import android.support.v4.media.session.MediaControllerCompat;
+
 import android.os.Binder;
 import android.os.IBinder;
+import android.support.v4.media.session.MediaSessionCompat;
 import android.util.Log;
 
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import au.com.taaffe.spotifystreamer.ParcelableTrack;
@@ -45,18 +50,18 @@ public class PlayerService extends Service {
     private final IBinder mBinder = new PlayerBinder();
 
     private MediaPlayer mMediaPlayer;
-    private MediaSessionManager mManager;
-    private MediaSession mSession;
-    private MediaController mController;
+    protected MediaSessionCompat mSession;
+    private MediaControllerCompat mController;
     private Bitmap mAlbumImage;
     private ArrayList<ParcelableTrack> mPlaylist;
     private int mTrackId = INVALID_TRACK_ID;
     private PlayerServiceListener mListener;
+    private MediaControllerCompat.TransportControls mTransportControls;
 
     private Target mTarget = new Target() {
         @Override
         public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
-            Log.v(LOG_TAG,"onBitmapLoaded");
+            Log.v(LOG_TAG, "onBitmapLoaded");
             mAlbumImage = bitmap;
             if (mListener != null) {
                 mListener.updateAlbumImage(mAlbumImage);
@@ -77,13 +82,10 @@ public class PlayerService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (mManager == null) {
-            initMediaSession();
-        }
         if (intent != null && intent.hasExtra(EXTRA_PLAYLIST)) {
             mPlaylist = intent.getParcelableArrayListExtra(EXTRA_PLAYLIST);
 
-            // When a playlist is recieved start from the beginning unless a trackId has
+            // When a playlist is received, start from the beginning unless a trackId has
             // been specified
             mTrackId = 0;
         }
@@ -94,28 +96,32 @@ public class PlayerService extends Service {
         if (intent != null && intent.getAction() != null) {
             handleAction(intent.getAction());
         }
+
+        if (mMediaPlayer == null) {
+            initMediaSession();
+            loadTrack();
+        }
         return super.onStartCommand(intent, flags, startId);
     }
 
-    @TargetApi(21)
     public void handleAction(String action) {
 
         switch (action) {
             case ACTION_PLAY:
                 Log.v(LOG_TAG, "ACTION_PLAY");
-                mController.getTransportControls().play();
+                mTransportControls.play();
                 break;
             case ACTION_PREVIOUS:
                 Log.v(LOG_TAG,"ACTION_PREVIOUS");
-                mController.getTransportControls().skipToPrevious();
+                mTransportControls.skipToPrevious();
                 break;
             case ACTION_PAUSE:
                 Log.v(LOG_TAG, "ACTION_PAUSE");
-                mController.getTransportControls().pause();
+                mTransportControls.pause();
                 break;
             case ACTION_NEXT:
                 Log.v(LOG_TAG,"ACTION_NEXT");
-                mController.getTransportControls().skipToNext();
+                mTransportControls.skipToNext();
                 break;
             default:
                 return;
@@ -130,61 +136,112 @@ public class PlayerService extends Service {
         Picasso.with(this).load(mPlaylist.get(mTrackId).track_image_url).into(mTarget);
     }
 
-    @TargetApi(21)
     public void initMediaSession() {
         mMediaPlayer = new MediaPlayer();
-        mManager = (MediaSessionManager) getSystemService(Context.MEDIA_SESSION_SERVICE);
-        mSession = new MediaSession(this,MEDIA_SESSION_TAG);
+        mSession = new MediaSessionCompat(this,
+                MEDIA_SESSION_TAG,
+                new ComponentName(getApplicationContext(),
+                        MediaButtonEventReceiver.class),
+                null);
         mController = mSession.getController();
-
-        mSession.setCallback(new MediaSession.Callback() {
-            private final String LOG_TAG = MediaSession.Callback.class.getSimpleName();
-
-            @Override
-            public void onPlay() {
-                //TODO onPlay
-                Log.v(LOG_TAG, "onPlay");
-                loadTrack();
-            }
-
-            @Override
-            public void onPause() {
-                //TODO onPause
-                Log.v(LOG_TAG, "onPlause");
-                loadTrack();
-            }
-
-            @Override
-            public void onSkipToNext() {
-                //TODO onSkipToNext
-                mTrackId ++;
-                loadTrack();
-                Log.v(LOG_TAG, "onSkipToNext, mTrackId: " + mTrackId);
-            }
-
-            @Override
-            public void onSkipToPrevious() {
-                //TODO onSkipToPrevious
-                mTrackId--;
-                loadTrack();
-                Log.v(LOG_TAG, "onSkipToNext, mTrackId: " + mTrackId);
-            }
-        });
+        mTransportControls = mController.getTransportControls();
+        mSession.setCallback(mediaSessionCallback);
 
         mSession.setActive(true);
 
         // Indicate you want to receive transport controls via your Callback
-        mSession.setFlags(MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
+        mSession.setFlags(MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
+        mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+
+        // Since the preparation is asynchronous we need to listen for error so that they can
+        // be handled rather than crashing the application.
+        mMediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+            @Override
+            public boolean onError(MediaPlayer mp, int what, int extra) {
+                Log.e(LOG_TAG, String.format("Error(%s%s)", what, extra));
+                return false;
+            }
+        });
+
+        mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                mTransportControls.skipToNext();
+            }
+        });
+
+        mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+            @Override
+            public void onPrepared(MediaPlayer mp) {
+                mMediaPlayer.start();
+                if (mListener != null) {
+                    mListener.updateStatus();
+                }
+            }
+        });
+
+        try {
+            mMediaPlayer.setDataSource(getStreamUrl());
+        } catch (IllegalArgumentException e) {
+            Log.e(LOG_TAG, e.getMessage());
+        } catch (IOException e) {
+            Log.e(LOG_TAG, e.getMessage());
+        }
+        mMediaPlayer.prepareAsync();
     }
 
-    @TargetApi(21)
+    public class MediaButtonEventReceiver extends BroadcastReceiver {
+        private final String LOG_TAG = MediaButtonEventReceiver.class.getSimpleName();
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.v(LOG_TAG,"onRecieve");
+        }
+    }
+
+    private MediaSessionCompat.Callback mediaSessionCallback = new MediaSessionCompat.Callback() {
+        private final String LOG_TAG = MediaSessionCompat.Callback.class.getSimpleName();
+
+        @Override
+        public void onPlay() {
+            //TODO onPlay
+            Log.v(LOG_TAG, "onPlay");
+
+            loadTrack();
+        }
+
+        @Override
+        public void onPause() {
+            //TODO onPause
+            Log.v(LOG_TAG, "onPlause");
+            loadTrack();
+        }
+
+        @Override
+        public void onSkipToNext() {
+            //TODO onSkipToNext
+            mTrackId ++;
+            loadTrack();
+            Log.v(LOG_TAG, "onSkipToNext, mTrackId: " + mTrackId);
+        }
+
+        @Override
+        public void onSkipToPrevious() {
+            //TODO onSkipToPrevious
+            mTrackId--;
+            loadTrack();
+            Log.v(LOG_TAG, "onSkipToNext, mTrackId: " + mTrackId);
+        }
+    };
+
     private void createNotification() {
         Log.v(LOG_TAG, "createNotification");
-        final Notification noti = new Notification.Builder(this)
+
+        final Notification noti = new NotificationCompat.Builder(this)
             // Hide the timestamp
                 .setShowWhen(false)
                     // Set the Notification style
-                .setStyle(new Notification.MediaStyle()
+                .setStyle(new NotificationCompat.MediaStyle()
                         // Attach our MediaSession token
                         .setMediaSession(mSession.getSessionToken())
                                 // Show our playback controls in the compat view
@@ -214,7 +271,6 @@ public class PlayerService extends Service {
 
         PendingIntent pendingIntent = PendingIntent
                 .getService(this, 1, intent, PendingIntent.FLAG_CANCEL_CURRENT);
-
 
         return pendingIntent;
     }
@@ -251,6 +307,7 @@ public class PlayerService extends Service {
         return mBinder;
     }
 
+    public String getStreamUrl() {return mPlaylist.get(mTrackId).track_preview_url; }
     public String getArtist() {
         return mPlaylist.get(mTrackId).artist;
     }
@@ -258,7 +315,6 @@ public class PlayerService extends Service {
         return mPlaylist.get(mTrackId).album;
     }
     public String getTrack() {
-        Log.v(LOG_TAG,"getTrack: " + mPlaylist.get(mTrackId).track_name);
         return mPlaylist.get(mTrackId).track_name;
     }
     public boolean isPlaying(){
@@ -268,25 +324,16 @@ public class PlayerService extends Service {
         return false;
     }
     public void onPlay(){
-        if(mMediaPlayer != null) {
-            mMediaPlayer.start();
-            if(mListener != null) {
-                mListener.updateStatus();
-            }
-        }
+        mTransportControls.pause();
     }
     public void onPause(){
-        if (mMediaPlayer != null) {
-            mMediaPlayer.pause();
-            if(mListener != null) {
-                mListener.updateStatus();
-            }
-        }
+        mTransportControls.pause();
     }
     public void onNext(){
-        //TODO onNext
+        mTransportControls.skipToNext();
     }
+
     public void onPrevious() {
-        //TODO onNext
+        mTransportControls.skipToPrevious();
     }
 }

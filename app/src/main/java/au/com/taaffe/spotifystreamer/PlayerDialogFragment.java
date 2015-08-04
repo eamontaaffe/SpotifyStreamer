@@ -124,7 +124,6 @@ public class PlayerDialogFragment extends DialogFragment {
     public void onStart() {
         super.onStart();
         Intent intent = new Intent(getActivity(),PlayerService.class);
-        intent.setAction(PlayerService.ACTION_PLAY);
         intent.putExtras(getArguments());
         getActivity().startService(intent);
         getActivity().bindService(intent, mConnection, Context.BIND_IMPORTANT);
