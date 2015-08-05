@@ -66,6 +66,7 @@ public class PlayerDialogFragment extends DialogFragment {
     private PlayerService mPlayerService;
     private boolean mBound = false;
 
+    private Bundle mColors;
     private int mVibrantColor = -1;
     private int mDarkVibrantColor = -1;
 
@@ -106,6 +107,8 @@ public class PlayerDialogFragment extends DialogFragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
+        //TODO allow for activity restart to be handled
         Log.v(LOG_TAG, "onCreateView");
         View rootView = inflater.inflate(R.layout.fragment_player, container, false);
 
@@ -113,14 +116,25 @@ public class PlayerDialogFragment extends DialogFragment {
 
         parseArguments(getArguments());
 
-        if(getActivity().getClass().equals(PlayerActivity.class)) {
-            Intent intent = new Intent(getActivity(), PlayerService.class);
+        Intent intent = new Intent(getActivity(), PlayerService.class);
+
+        if (savedInstanceState == null) {
             intent.putExtras(getArguments());
             getActivity().startService(intent);
-            getActivity().bindService(intent, mConnection, Context.BIND_IMPORTANT);
         }
+        if (savedInstanceState != null && savedInstanceState.containsKey(COLORS)) {
+            mColors = savedInstanceState.getBundle(COLORS);
+            updateActivityColors(mColors);
+        }
+        getActivity().bindService(intent, mConnection, Context.BIND_IMPORTANT);
 
         return rootView;
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putBundle(COLORS,mColors);
+        super.onSaveInstanceState(outState);
     }
 
     /** Defines callbacks for service binding, passed to bindService() */
@@ -169,8 +183,8 @@ public class PlayerDialogFragment extends DialogFragment {
             return;
 
         if (arguments.containsKey(COLORS)) {
-            Bundle colors = arguments.getBundle(COLORS);
-            updateActivityColors(colors);
+            mColors = arguments.getBundle(COLORS);
+            updateActivityColors(mColors);
         }
     }
 
@@ -213,6 +227,7 @@ public class PlayerDialogFragment extends DialogFragment {
         return newDialog;
     }
 
+    //TODO update time and scrub bar
 //    private void updateTime() {
 //        mTotalTimeTextView.setText(
 //                formatMillis(mMediaPlayer.getDuration()));
