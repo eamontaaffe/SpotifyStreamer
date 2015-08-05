@@ -35,13 +35,13 @@
             android:name=".PlayerActivity"
             android:label="@string/title_activity_player"
             android:parentActivityName=".TopTracksActivity"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            android:launchMode="singleInstance">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="au.com.taaffe.spotifystreamer.TopTracksActivity" />
         </activity>
 
-        <service android:name=".service.PlayerServiceOLD" />
         <service android:name=".service.PlayerService" />
 
     </application>

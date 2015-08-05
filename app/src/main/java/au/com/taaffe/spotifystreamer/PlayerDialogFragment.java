@@ -1,6 +1,7 @@
 package au.com.taaffe.spotifystreamer;
 
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.Dialog;
 import android.content.ComponentName;
 import android.content.Context;
@@ -30,7 +31,6 @@ import android.os.Handler;
 import com.squareup.picasso.Picasso;
 
 import au.com.taaffe.spotifystreamer.service.PlayerService;
-import au.com.taaffe.spotifystreamer.service.PlayerServiceOLD;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
@@ -65,10 +65,6 @@ public class PlayerDialogFragment extends DialogFragment {
 
     private PlayerService mPlayerService;
     private boolean mBound = false;
-
-    private MediaPlayer mMediaPlayer;
-    private ArrayList<ParcelableTrack> mParcelableTrackList;
-    private int mTrackIndex;
 
     private int mVibrantColor = -1;
     private int mDarkVibrantColor = -1;
@@ -117,16 +113,14 @@ public class PlayerDialogFragment extends DialogFragment {
 
         parseArguments(getArguments());
 
-        return rootView;
-    }
+        if(getActivity().getClass().equals(PlayerActivity.class)) {
+            Intent intent = new Intent(getActivity(), PlayerService.class);
+            intent.putExtras(getArguments());
+            getActivity().startService(intent);
+            getActivity().bindService(intent, mConnection, Context.BIND_IMPORTANT);
+        }
 
-    @Override
-    public void onStart() {
-        super.onStart();
-        Intent intent = new Intent(getActivity(),PlayerService.class);
-        intent.putExtras(getArguments());
-        getActivity().startService(intent);
-        getActivity().bindService(intent, mConnection, Context.BIND_IMPORTANT);
+        return rootView;
     }
 
     /** Defines callbacks for service binding, passed to bindService() */
@@ -153,6 +147,11 @@ public class PlayerDialogFragment extends DialogFragment {
                 @Override
                 public void updateAlbumImage(Bitmap albumImage) {
                     mAlbumImageView.setImageBitmap(albumImage);
+                }
+
+                @Override
+                public void onClose() {
+                    getActivity().finish();
                 }
             });
         }
@@ -323,4 +322,14 @@ public class PlayerDialogFragment extends DialogFragment {
     public void onStop() {
         super.onStop();
     }
+
+//    private boolean isPlayerServiceRunning() {
+//        ActivityManager manager = (ActivityManager) getActivity().getSystemService(Context.ACTIVITY_SERVICE);
+//        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+//            if (PlayerService.class.getName().equals(service.service.getClassName())) {
+//                return true;
+//            }
+//        }
+//        return false;
+//    }
 }

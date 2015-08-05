@@ -13,6 +13,7 @@ import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.session.MediaController;
+import android.support.v4.app.TaskStackBuilder;
 import android.support.v7.app.NotificationCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 
@@ -28,7 +29,11 @@ import com.squareup.picasso.Target;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import au.com.taaffe.spotifystreamer.MainActivity;
 import au.com.taaffe.spotifystreamer.ParcelableTrack;
+import au.com.taaffe.spotifystreamer.PlayerActivity;
+import au.com.taaffe.spotifystreamer.PlayerDialogFragment;
+import au.com.taaffe.spotifystreamer.R;
 
 /**
  * Created by eamon on 30/07/15.
@@ -207,7 +212,6 @@ public class PlayerService extends Service {
 
         @Override
         public void onPlay() {
-            //TODO onPlay
             Log.v(LOG_TAG, "onPlay");
             mMediaPlayer.start();
             loadTrack();
@@ -218,7 +222,6 @@ public class PlayerService extends Service {
 
         @Override
         public void onPause() {
-            //TODO onPause
             Log.v(LOG_TAG, "onPlause");
             mMediaPlayer.pause();
             loadTrack();
@@ -228,23 +231,31 @@ public class PlayerService extends Service {
 
         @Override
         public void onSkipToNext() {
+            Log.v(LOG_TAG, "onSkipToNext, mTrackId: " + mTrackId);
+
             if (mPlaylist.size() > mTrackId + 1) {
                 mMediaPlayer.reset();
                 if(mListener != null) {
                     mListener.updateStatus();
                 }
                 playTrack(mTrackId ++);
+                loadTrack();
             } else {
-                Toast.makeText(mContext, "This is the last track!", Toast.LENGTH_SHORT).show();
+                stopSelf();
             }
-            loadTrack();
-            Log.v(LOG_TAG, "onSkipToNext, mTrackId: " + mTrackId);
         }
 
         @Override
         public void onSkipToPrevious() {
-            //TODO onSkipToPrevious
-            mTrackId--;
+            if (mTrackId > 0) {
+                mMediaPlayer.reset();
+                if(mListener != null) {
+                    mListener.updateStatus();
+                }
+                playTrack(mTrackId --);
+            } else {
+                Toast.makeText(mContext, R.string.first_track_warning, Toast.LENGTH_SHORT).show();
+            }
             loadTrack();
             Log.v(LOG_TAG, "onSkipToPrevious, mTrackId: " + mTrackId);
         }
@@ -275,8 +286,22 @@ public class PlayerService extends Service {
     private void createNotification() {
         Log.v(LOG_TAG, "createNotification");
 
+        //TODO make album click open PlayerDialogFragment
+        Intent playerIntent = new Intent(this, PlayerActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        stackBuilder.addNextIntent(playerIntent);
+        PendingIntent playerPendingIntent =
+                stackBuilder.getPendingIntent(
+                        0,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                );
+
         final Notification noti = new NotificationCompat.Builder(this)
-            // Hide the timestamp
+                //TODO swap pause/play button
+                // Hide the timestamp
                 .setShowWhen(false)
                     // Set the Notification style
                 .setStyle(new NotificationCompat.MediaStyle()
@@ -293,6 +318,7 @@ public class PlayerService extends Service {
                 .setContentText(getArtist())
                 .setContentInfo(getAlbum())
                 .setContentTitle(getTrack())
+                .setContentIntent(playerPendingIntent)
                     // Add some playback controls
                 .addAction(android.R.drawable.ic_media_previous, "prev", intentBuilder(ACTION_PREVIOUS))
                 .addAction(android.R.drawable.ic_media_pause, "pause", intentBuilder(ACTION_PAUSE))
@@ -313,6 +339,16 @@ public class PlayerService extends Service {
         return pendingIntent;
     }
 
+    @Override
+    public void onDestroy() {
+        mMediaPlayer.release();
+        mSession.release();
+        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(NOTIFICATION_ID);
+        if (mListener != null) {
+            mListener.onClose();
+        }
+        super.onDestroy();
+    }
 
     ////////////////////////////////////////////////////////////////
     ///////// Code for interfacing with a view /////////////////////
@@ -338,6 +374,9 @@ public class PlayerService extends Service {
 
         //used to notify the view when the artist cover is loaded
         void updateAlbumImage(Bitmap albumImage);
+
+        //used notify a bound view that the service is closing
+        void onClose();
     }
 
     @Override
@@ -354,6 +393,13 @@ public class PlayerService extends Service {
     }
     public String getTrack() {
         return mPlaylist.get(mTrackId).track_name;
+    }
+    public Bitmap getAlbumImage() {
+        if(mAlbumImage != null) {
+            return mAlbumImage;
+        }
+        //TODO should probably start image load if null
+        return null;
     }
     public boolean isPlaying(){
         if(mMediaPlayer != null) {

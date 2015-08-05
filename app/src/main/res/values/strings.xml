@@ -9,4 +9,6 @@
     <string name="hello_world">Hello world!</string>
     <string name="time_default">0:00</string>
     <string name="time_format">%1$2d:%2$02d</string>
+    <string name="first_track_warning">This is the first track!</string>
+    <string name="last_track_warning">This is the last track!</string>
 </resources>
