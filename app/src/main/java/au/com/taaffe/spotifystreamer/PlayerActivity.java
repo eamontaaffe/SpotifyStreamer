@@ -6,8 +6,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 
-public class PlayerActivity extends ActionBarActivity
-        implements PlayerDialogFragment.PlayerDialogFragmentListener{
+public class PlayerActivity extends ActionBarActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,21 +48,5 @@ public class PlayerActivity extends ActionBarActivity
         }
 
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public void replacePlayerDialogFragment(Bundle bundle) {
-        PlayerDialogFragment newPlayerDialogFragment = new PlayerDialogFragment();
-
-        newPlayerDialogFragment.setArguments(bundle);
-
-        getSupportFragmentManager().beginTransaction()
-                .replace(R.id.player_container, newPlayerDialogFragment)
-                .commit();
-    }
-
-    @Override
-    public void onLastTrackComplete() {
-        this.finish();
     }
 }

@@ -70,38 +70,11 @@ public class PlayerDialogFragment extends DialogFragment {
     private int mVibrantColor = -1;
     private int mDarkVibrantColor = -1;
 
-    private PlayerDialogFragmentListener mPlayerDialogFragmentListener;
-
     private Handler mHandler = new Handler();
 
     private Runnable mUpdateScrubRunnable;
 
     public PlayerDialogFragment() {
-    }
-
-    /**
-     * A callback interface that all activities containing this fragment must
-     * implement. This mechanism allows activities to be notified of track selection
-     */
-    public interface PlayerDialogFragmentListener {
-
-        public void replacePlayerDialogFragment(Bundle bundle);
-        public void onLastTrackComplete();
-    }
-
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-
-        // Verify that the host activity implements the callback interface
-        try {
-            // Instantiate the NoticeDialogListener so we can send events to the host
-            mPlayerDialogFragmentListener = (PlayerDialogFragmentListener) activity;
-        } catch (ClassCastException e) {
-            // The activity doesn't implement the interface, throw exception
-            throw new ClassCastException(activity.toString()
-                    + " must implement NoticeDialogListener");
-        }
     }
 
     @Override
@@ -114,27 +87,39 @@ public class PlayerDialogFragment extends DialogFragment {
 
         ButterKnife.bind(this, rootView);
 
-        parseArguments(getArguments());
-
-        Intent intent = new Intent(getActivity(), PlayerService.class);
-
-        if (savedInstanceState == null) {
-            intent.putExtras(getArguments());
-            getActivity().startService(intent);
+        // there are 2 restart cases:
+        if (!isPlayerServiceRunning() && savedInstanceState == null) {
+            // * The playerService isnt running and the activity being created
+            parseArguments(getArguments());
+            startPlayerService();
+            bindToPlayerService();
+        } else if (isPlayerServiceRunning()) {
+            // * The playerService is running
+            bindToPlayerService();
         }
-        if (savedInstanceState != null && savedInstanceState.containsKey(COLORS)) {
-            mColors = savedInstanceState.getBundle(COLORS);
-            updateActivityColors(mColors);
-        }
-        getActivity().bindService(intent, mConnection, Context.BIND_IMPORTANT);
-
         return rootView;
     }
 
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        outState.putBundle(COLORS,mColors);
-        super.onSaveInstanceState(outState);
+    private void parseArguments(Bundle arguments) {
+        if (arguments == null)
+            return;
+
+        if (arguments.containsKey(COLORS)) {
+            mColors = arguments.getBundle(COLORS);
+            updateActivityColors(mColors);
+        }
+    }
+
+    private void startPlayerService() {
+        Intent intent = new Intent(getActivity(), PlayerService.class);
+
+        intent.putExtras(getArguments());
+        getActivity().startService(intent);
+    }
+
+    private void bindToPlayerService() {
+        Intent intent = new Intent(getActivity(), PlayerService.class);
+        getActivity().bindService(intent, mConnection, Context.BIND_IMPORTANT);
     }
 
     /** Defines callbacks for service binding, passed to bindService() */
@@ -147,6 +132,7 @@ public class PlayerDialogFragment extends DialogFragment {
             PlayerService.PlayerBinder binder = (PlayerService.PlayerBinder) service;
             mPlayerService = binder.getService();
             updatePlayerView();
+            updatePlayPause();
             mBound = true;
             binder.setListener(new PlayerService.PlayerServiceListener() {
                 @Override
@@ -178,25 +164,19 @@ public class PlayerDialogFragment extends DialogFragment {
 
     };
 
-    private void parseArguments(Bundle arguments) {
-        if (arguments == null)
-            return;
-
-        if (arguments.containsKey(COLORS)) {
-            mColors = arguments.getBundle(COLORS);
-            updateActivityColors(mColors);
-        }
-    }
-
     private void updatePlayerView(){
-
         mArtistTextView.setText(mPlayerService.getArtist());
         mAlbumTextView.setText(mPlayerService.getAlbum());
         mTrackTextView.setText(mPlayerService.getTrack());
+        updateActivityColors(mPlayerService.getColors());
+        mAlbumImageView.setImageBitmap(mPlayerService.getAlbumImage());
 
     };
 
     private void updateActivityColors(Bundle colors) {
+        if(colors == null)
+            return;
+
         mVibrantColor = colors.getInt(VIBRANT_COLOR);
         mDarkVibrantColor = colors.getInt(DARK_VIBRANT_COLOR);
 
@@ -338,13 +318,13 @@ public class PlayerDialogFragment extends DialogFragment {
         super.onStop();
     }
 
-//    private boolean isPlayerServiceRunning() {
-//        ActivityManager manager = (ActivityManager) getActivity().getSystemService(Context.ACTIVITY_SERVICE);
-//        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-//            if (PlayerService.class.getName().equals(service.service.getClassName())) {
-//                return true;
-//            }
-//        }
-//        return false;
-//    }
+    private boolean isPlayerServiceRunning() {
+        ActivityManager manager = (ActivityManager) getActivity().getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (PlayerService.class.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

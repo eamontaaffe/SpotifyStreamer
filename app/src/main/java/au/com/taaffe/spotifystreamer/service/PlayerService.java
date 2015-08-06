@@ -13,6 +13,7 @@ import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.session.MediaController;
+import android.os.Bundle;
 import android.support.v4.app.TaskStackBuilder;
 import android.support.v7.app.NotificationCompat;
 import android.support.v4.media.session.MediaControllerCompat;
@@ -34,6 +35,7 @@ import au.com.taaffe.spotifystreamer.ParcelableTrack;
 import au.com.taaffe.spotifystreamer.PlayerActivity;
 import au.com.taaffe.spotifystreamer.PlayerDialogFragment;
 import au.com.taaffe.spotifystreamer.R;
+import butterknife.Bind;
 
 /**
  * Created by eamon on 30/07/15.
@@ -52,6 +54,7 @@ public class PlayerService extends Service {
     public static final String ACTION_STOP = "action_stop";
     public static final String EXTRA_PLAYLIST = "track_list";
     public static final String EXTRA_TRACK_ID = "extra_track_id";
+    public static final String EXTRA_COLORS = "colors";
 
     private final IBinder mBinder = new PlayerBinder();
 
@@ -61,6 +64,7 @@ public class PlayerService extends Service {
     private Bitmap mAlbumImage;
     private ArrayList<ParcelableTrack> mPlaylist;
     private int mTrackId = INVALID_TRACK_ID;
+    private Bundle mColors;
     private PlayerServiceListener mListener;
     private MediaControllerCompat.TransportControls mTransportControls;
     private Context mContext;
@@ -98,6 +102,9 @@ public class PlayerService extends Service {
         }
         if (intent != null && intent.hasExtra(EXTRA_TRACK_ID)) {
             mTrackId = intent.getIntExtra(EXTRA_TRACK_ID, INVALID_TRACK_ID);
+        }
+        if (intent != null && intent.hasExtra(EXTRA_COLORS)) {
+            mColors = intent.getBundleExtra(EXTRA_COLORS);
         }
 
         if (intent != null && intent.getAction() != null) {
@@ -288,7 +295,7 @@ public class PlayerService extends Service {
 
         //TODO make album click open PlayerDialogFragment
         Intent playerIntent = new Intent(this, PlayerActivity.class)
-                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
         TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
@@ -309,8 +316,6 @@ public class PlayerService extends Service {
                         .setMediaSession(mSession.getSessionToken())
                                 // Show our playback controls in the compat view
                         .setShowActionsInCompactView(0, 1, 2))
-                    // Set the Notification color
-//                .setColor(0xFFDB4437)
                     // Set the large and small icons
                 .setLargeIcon(mAlbumImage)
                 .setSmallIcon(android.R.drawable.stat_notify_more)
@@ -400,6 +405,9 @@ public class PlayerService extends Service {
         }
         //TODO should probably start image load if null
         return null;
+    }
+    public Bundle getColors() {
+        return mColors;
     }
     public boolean isPlaying(){
         if(mMediaPlayer != null) {

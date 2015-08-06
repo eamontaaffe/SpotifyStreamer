@@ -13,12 +13,12 @@ import android.view.MenuItem;
 
 
 public class MainActivity extends ActionBarActivity implements SearchFragment.SearchListener,
-        TopTracksFragment.TopTracksListener, PlayerDialogFragment.PlayerDialogFragmentListener {
+        TopTracksFragment.TopTracksListener {
 
     private final String LOG_TAG = SearchFragment.class.getSimpleName();
 
-    private static String TOPTRACKSFRAGMENT_TAG = "TTTAG";
-    private static String PLAYERDIALOGFRAGMENT_TAG = "PDFTAG";
+    private static final String TOPTRACKSFRAGMENT_TAG = "TTTAG";
+    private static final String PLAYERDIALOGFRAGMENT_TAG = "PDFTAG";
 
     private boolean mTwoPane;
 
@@ -110,31 +110,5 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
             openPlayerIntent.putExtras(bundle);
             startActivity(openPlayerIntent);
         }
-    }
-
-    @Override
-    public void replacePlayerDialogFragment(Bundle bundle) {
-        Log.v(LOG_TAG, "onTopTrackItemSelected");
-
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        DialogFragment playerFragment = (android.support.v4.app.DialogFragment)
-                fragmentManager.findFragmentByTag(PLAYERDIALOGFRAGMENT_TAG);
-
-        playerFragment.dismiss();
-
-        PlayerDialogFragment newPlayerDialogFragment = new PlayerDialogFragment();
-        newPlayerDialogFragment.setArguments(bundle);
-        newPlayerDialogFragment.show(fragmentManager, PLAYERDIALOGFRAGMENT_TAG);
-    }
-
-    @Override
-    public void onLastTrackComplete() {
-        Log.v(LOG_TAG, "onlastTrackComplete");
-
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        DialogFragment playerFragment = (android.support.v4.app.DialogFragment)
-                fragmentManager.findFragmentByTag(PLAYERDIALOGFRAGMENT_TAG);
-
-        playerFragment.dismiss();
     }
 }
