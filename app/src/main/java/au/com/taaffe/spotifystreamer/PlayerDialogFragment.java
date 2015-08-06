@@ -100,6 +100,8 @@ public class PlayerDialogFragment extends DialogFragment {
         return rootView;
     }
 
+
+
     private void parseArguments(Bundle arguments) {
         if (arguments == null)
             return;
@@ -260,7 +262,6 @@ public class PlayerDialogFragment extends DialogFragment {
         }
     }
 
-    //TODO update time and scrub bar
     private void updateTime(int duration, int currentPosition) {
         mTotalTimeTextView.setText(
                 formatMillis(duration));
@@ -280,7 +281,7 @@ public class PlayerDialogFragment extends DialogFragment {
         mUpdateScrubRunnable = new Runnable() {
             @Override
             public void run() {
-                if(mPlayerService.isPlaying() && mAttached){
+                if(mBound && mPlayerService.isPlaying() && mAttached){
                     updateTime(mPlayerService.getDuration(),mPlayerService.getCurrentPosition());
                 }
                 mHandler.postDelayed(this, UPDATE_PERIOD);
@@ -304,12 +305,15 @@ public class PlayerDialogFragment extends DialogFragment {
 
     @Override
     public void onPause() {
-        super.onPause();
 
+        if (mBound) {
+            getActivity().unbindService(mConnection);
+            mBound = false;
+        }
         if(mUpdateScrubRunnable != null) {
             mHandler.removeCallbacks(mUpdateScrubRunnable);
-            super.onPause();
         }
+        super.onPause();
     }
 
     @Override
@@ -320,11 +324,6 @@ public class PlayerDialogFragment extends DialogFragment {
             mHandler.postDelayed(mUpdateScrubRunnable, UPDATE_PERIOD);
             super.onResume();
         }
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
     }
 
     private boolean isPlayerServiceRunning() {

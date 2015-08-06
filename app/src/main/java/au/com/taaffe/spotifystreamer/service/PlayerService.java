@@ -133,6 +133,9 @@ public class PlayerService extends Service {
             case ACTION_NEXT:
                 mTransportControls.skipToNext();
                 break;
+            case ACTION_STOP:
+                stopSelf();
+                break;
             default:
                 return;
         }
@@ -188,6 +191,7 @@ public class PlayerService extends Service {
                 if (mListener != null) {
                     mListener.updateStatus();
                 }
+                createNotification();
             }
         });
 
@@ -223,16 +227,20 @@ public class PlayerService extends Service {
                 loadTrack();
                 if (mListener != null)
                     mListener.updateStatus();
+                createNotification();
             }
-        }
+    }
 
         @Override
         public void onPause() {
             Log.d(LOG_TAG, "onPause");
-            mMediaPlayer.pause();
-            loadTrack();
-            if(mListener != null)
-                mListener.updateStatus();
+            if(mPlayerPrepared) {
+                mMediaPlayer.pause();
+                loadTrack();
+                if (mListener != null)
+                    mListener.updateStatus();
+                createNotification();
+            }
         }
 
         @Override
@@ -289,7 +297,6 @@ public class PlayerService extends Service {
 
     private void createNotification() {
 
-        //TODO make album click open PlayerDialogFragment
         Intent playerIntent = new Intent(this, PlayerActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -301,6 +308,20 @@ public class PlayerService extends Service {
                         0,
                         PendingIntent.FLAG_UPDATE_CURRENT
                 );
+
+        int playPauseDrawable;
+        PendingIntent playPauseIntent;
+        String playPauseString;
+
+        if (isPlaying()) {
+            playPauseDrawable = android.R.drawable.ic_media_pause;
+            playPauseIntent = intentBuilder(ACTION_PAUSE);
+            playPauseString = "play";
+        } else {
+            playPauseDrawable = android.R.drawable.ic_media_play;
+            playPauseIntent = intentBuilder(ACTION_PLAY);
+            playPauseString = "pause";
+        }
 
         final Notification noti = new NotificationCompat.Builder(this)
                 //TODO swap pause/play button
@@ -322,8 +343,9 @@ public class PlayerService extends Service {
                 .setContentIntent(playerPendingIntent)
                     // Add some playback controls
                 .addAction(android.R.drawable.ic_media_previous, "prev", intentBuilder(ACTION_PREVIOUS))
-                .addAction(android.R.drawable.ic_media_pause, "pause", intentBuilder(ACTION_PAUSE))
+                .addAction(playPauseDrawable, playPauseString, playPauseIntent)
                 .addAction(android.R.drawable.ic_media_next, "next", intentBuilder(ACTION_NEXT))
+                .setDeleteIntent(intentBuilder(ACTION_STOP))
                 .build();
 
             ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIFICATION_ID, noti);
