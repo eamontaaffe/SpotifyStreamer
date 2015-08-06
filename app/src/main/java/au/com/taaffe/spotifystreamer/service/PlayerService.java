@@ -59,6 +59,7 @@ public class PlayerService extends Service {
     private final IBinder mBinder = new PlayerBinder();
 
     private MediaPlayer mMediaPlayer;
+    private boolean mPlayerPrepared = false;
     protected MediaSessionCompat mSession;
     private MediaControllerCompat mController;
     private Bitmap mAlbumImage;
@@ -72,7 +73,6 @@ public class PlayerService extends Service {
     private Target mTarget = new Target() {
         @Override
         public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
-            Log.v(LOG_TAG, "onBitmapLoaded");
             mAlbumImage = bitmap;
             if (mListener != null) {
                 mListener.updateAlbumImage(mAlbumImage);
@@ -122,19 +122,15 @@ public class PlayerService extends Service {
 
         switch (action) {
             case ACTION_PLAY:
-                Log.v(LOG_TAG, "ACTION_PLAY");
                 mTransportControls.play();
                 break;
             case ACTION_PREVIOUS:
-                Log.v(LOG_TAG,"ACTION_PREVIOUS");
                 mTransportControls.skipToPrevious();
                 break;
             case ACTION_PAUSE:
-                Log.v(LOG_TAG, "ACTION_PAUSE");
                 mTransportControls.pause();
                 break;
             case ACTION_NEXT:
-                Log.v(LOG_TAG,"ACTION_NEXT");
                 mTransportControls.skipToNext();
                 break;
             default:
@@ -143,7 +139,6 @@ public class PlayerService extends Service {
     }
 
     public void loadTrack() {
-        Log.v(LOG_TAG,"loadTrack");
         if(mTrackId == INVALID_TRACK_ID)
             return;
 
@@ -188,6 +183,7 @@ public class PlayerService extends Service {
         mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mp) {
+                mPlayerPrepared = true;
                 mMediaPlayer.start();
                 if (mListener != null) {
                     mListener.updateStatus();
@@ -202,15 +198,16 @@ public class PlayerService extends Service {
         } catch (IOException e) {
             Log.e(LOG_TAG, e.getMessage());
         }
+        mPlayerPrepared = false;
         mMediaPlayer.prepareAsync();
     }
 
+    //This is required for the MediaSessionCompat constructor for API < 21
     public class MediaButtonEventReceiver extends BroadcastReceiver {
         private final String LOG_TAG = MediaButtonEventReceiver.class.getSimpleName();
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.v(LOG_TAG,"onRecieve");
         }
     }
 
@@ -219,17 +216,19 @@ public class PlayerService extends Service {
 
         @Override
         public void onPlay() {
-            Log.v(LOG_TAG, "onPlay");
-            mMediaPlayer.start();
-            loadTrack();
-            if(mListener != null)
-                mListener.updateStatus();
+            Log.d(LOG_TAG, "onPlay");
 
+            if(mPlayerPrepared) {
+                mMediaPlayer.start();
+                loadTrack();
+                if (mListener != null)
+                    mListener.updateStatus();
+            }
         }
 
         @Override
         public void onPause() {
-            Log.v(LOG_TAG, "onPlause");
+            Log.d(LOG_TAG, "onPause");
             mMediaPlayer.pause();
             loadTrack();
             if(mListener != null)
@@ -238,7 +237,7 @@ public class PlayerService extends Service {
 
         @Override
         public void onSkipToNext() {
-            Log.v(LOG_TAG, "onSkipToNext, mTrackId: " + mTrackId);
+            Log.d(LOG_TAG, "onSkipToNext");
 
             if (mPlaylist.size() > mTrackId + 1) {
                 mMediaPlayer.reset();
@@ -254,6 +253,7 @@ public class PlayerService extends Service {
 
         @Override
         public void onSkipToPrevious() {
+            Log.d(LOG_TAG, "onSkipToPrevious");
             if (mTrackId > 0) {
                 mMediaPlayer.reset();
                 if(mListener != null) {
@@ -264,18 +264,15 @@ public class PlayerService extends Service {
                 Toast.makeText(mContext, R.string.first_track_warning, Toast.LENGTH_SHORT).show();
             }
             loadTrack();
-            Log.v(LOG_TAG, "onSkipToPrevious, mTrackId: " + mTrackId);
         }
 
         public void playTrack(int trackId) {
             mMediaPlayer.reset();
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
 
-            Log.v(LOG_TAG,"trackIndex is: " + trackId);
-            Log.v(LOG_TAG,"mPlaylist.size(): " + mPlaylist.size());
-
             try {
                 mMediaPlayer.setDataSource(getStreamUrl());
+                mPlayerPrepared = false;
                 mMediaPlayer.prepareAsync();
             } catch (IllegalArgumentException e) {
                 Log.e(LOG_TAG, e.getMessage());
@@ -291,7 +288,6 @@ public class PlayerService extends Service {
     };
 
     private void createNotification() {
-        Log.v(LOG_TAG, "createNotification");
 
         //TODO make album click open PlayerDialogFragment
         Intent playerIntent = new Intent(this, PlayerActivity.class)
@@ -409,9 +405,20 @@ public class PlayerService extends Service {
     public Bundle getColors() {
         return mColors;
     }
+    public int getDuration() {
+        if (mMediaPlayer.isPlaying()) {
+            return mMediaPlayer.getDuration();
+        }
+        return -1;
+    }
+    public int getCurrentPosition() {
+        if (mMediaPlayer.isPlaying()) {
+            return mMediaPlayer.getCurrentPosition();
+        }
+        return -1;
+    }
     public boolean isPlaying(){
         if(mMediaPlayer != null) {
-            Log.v(LOG_TAG,"isPlaying: " + mMediaPlayer.isPlaying());
             return mMediaPlayer.isPlaying();
         }
         return false;
@@ -425,7 +432,6 @@ public class PlayerService extends Service {
     public void onNext(){
         mTransportControls.skipToNext();
     }
-
     public void onPrevious() {
         mTransportControls.skipToPrevious();
     }

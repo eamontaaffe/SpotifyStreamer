@@ -11,14 +11,19 @@
         android:id="@+id/artist_textview"
         android:layout_centerHorizontal="true"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:textColor="@color/primary_text_default_material_light"
+        android:fontFamily="sans-serif"
+        android:textSize="@dimen/list_primary_text_size"/>
 
     <TextView
         android:id="@+id/album_textview"
         android:layout_below="@+id/artist_textview"
         android:layout_centerHorizontal="true"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif"
+        android:textSize="@dimen/list_secondary_text_size"/>
 
     <FrameLayout
         android:layout_below="@+id/album_textview"
@@ -41,7 +46,9 @@
         android:layout_centerHorizontal="true"
         android:layout_below="@+id/album_framelayout"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif"
+        android:textSize="@dimen/list_secondary_text_size"/>
 
     <SeekBar
         android:layout_below="@+id/track_textview"
@@ -64,14 +71,18 @@
             android:text="@string/time_default"
             android:layout_alignParentLeft="true"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif"
+            android:textSize="@dimen/list_secondary_text_size"/>
 
         <TextView
             android:id="@+id/total_time_textview"
             android:text="@string/time_default"
             android:layout_alignParentRight="true"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif"
+            android:textSize="@dimen/list_secondary_text_size"/>
 
     </RelativeLayout>
 

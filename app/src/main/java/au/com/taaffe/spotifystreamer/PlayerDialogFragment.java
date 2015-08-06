@@ -25,6 +25,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 import android.os.Handler;
 
@@ -69,6 +70,7 @@ public class PlayerDialogFragment extends DialogFragment {
     private Bundle mColors;
     private int mVibrantColor = -1;
     private int mDarkVibrantColor = -1;
+    private boolean mAttached = false;
 
     private Handler mHandler = new Handler();
 
@@ -81,8 +83,6 @@ public class PlayerDialogFragment extends DialogFragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-        //TODO allow for activity restart to be handled
-        Log.v(LOG_TAG, "onCreateView");
         View rootView = inflater.inflate(R.layout.fragment_player, container, false);
 
         ButterKnife.bind(this, rootView);
@@ -155,13 +155,10 @@ public class PlayerDialogFragment extends DialogFragment {
                 }
             });
         }
-
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
         }
-
-
     };
 
     private void updatePlayerView(){
@@ -170,7 +167,8 @@ public class PlayerDialogFragment extends DialogFragment {
         mTrackTextView.setText(mPlayerService.getTrack());
         updateActivityColors(mPlayerService.getColors());
         mAlbumImageView.setImageBitmap(mPlayerService.getAlbumImage());
-
+        updateTime(0, 0);
+        startScrubUpdate();
     };
 
     private void updateActivityColors(Bundle colors) {
@@ -187,7 +185,6 @@ public class PlayerDialogFragment extends DialogFragment {
 
         ColorDrawable vibrantColorDrawable = new ColorDrawable(
                 mVibrantColor);
-
 
         if (mActionBar != null && window != null) {
             mActionBar.setBackgroundDrawable(vibrantColorDrawable);
@@ -207,19 +204,6 @@ public class PlayerDialogFragment extends DialogFragment {
         return newDialog;
     }
 
-    //TODO update time and scrub bar
-//    private void updateTime() {
-//        mTotalTimeTextView.setText(
-//                formatMillis(mMediaPlayer.getDuration()));
-//        mCurrentTimeTextView.setText(
-//                formatMillis(mMediaPlayer.getCurrentPosition()));
-//    }
-
-//    private String formatMillis(int time) {
-//        return String.format(getResources().getString(R.string.time_format),
-//                TimeUnit.MINUTES.convert(time,TimeUnit.MILLISECONDS),
-//                TimeUnit.SECONDS.convert(time,TimeUnit.MILLISECONDS));
-//    }
     private void updatePlayPause(){
         if(mPlayerService.isPlaying()) {
             mPlayPauseButton.setImageDrawable(
@@ -237,7 +221,6 @@ public class PlayerDialogFragment extends DialogFragment {
         if(!mBound && mPlayerService != null) {
             return;
         }
-
         if(mPlayPauseButton.getTag() == PLAY) {
             mPlayerService.onPause();
         } else if (mPlayPauseButton.getTag() == PAUSE){
@@ -247,7 +230,6 @@ public class PlayerDialogFragment extends DialogFragment {
 
     @OnClick(R.id.next_button)
     public void onNextButton(View view) {
-        Log.v(LOG_TAG,"onNextButton");
         if(!mBound && mPlayerService != null) {
             return;
         }
@@ -278,39 +260,66 @@ public class PlayerDialogFragment extends DialogFragment {
         }
     }
 
-//    public void startScrubUpdate(){
-//        mUpdateScrubRunnable = new Runnable() {
-//            @Override
-//            public void run() {
-//                if(mMediaPlayer != null){
-//                    int mCurrentPosition = mMediaPlayer.getCurrentPosition();
-//                    mScrubBar.setProgress(mCurrentPosition);
-//                }
-//                mHandler.postDelayed(this, UPDATE_PERIOD);
-//            }
-//        };
-//
-//        getActivity().runOnUiThread(mUpdateScrubRunnable);
-//    }
+    //TODO update time and scrub bar
+    private void updateTime(int duration, int currentPosition) {
+        mTotalTimeTextView.setText(
+                formatMillis(duration));
+        mCurrentTimeTextView.setText(
+                formatMillis(currentPosition));
+        mScrubBar.setMax(duration);
+        mScrubBar.setProgress(currentPosition);
+    }
+
+    private String formatMillis(int time) {
+        return String.format(getResources().getString(R.string.time_format),
+                TimeUnit.MINUTES.convert(time,TimeUnit.MILLISECONDS),
+                TimeUnit.SECONDS.convert(time,TimeUnit.MILLISECONDS));
+    }
+
+    public void startScrubUpdate(){
+        mUpdateScrubRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if(mPlayerService.isPlaying() && mAttached){
+                    updateTime(mPlayerService.getDuration(),mPlayerService.getCurrentPosition());
+                }
+                mHandler.postDelayed(this, UPDATE_PERIOD);
+            }
+        };
+
+        getActivity().runOnUiThread(mUpdateScrubRunnable);
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        mAttached = true;
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mAttached = false;
+    }
 
     @Override
     public void onPause() {
         super.onPause();
-//
-//        if(mUpdateScrubRunnable != null) {
-//            mHandler.removeCallbacks(mUpdateScrubRunnable);
-//            super.onPause();
-//        }
+
+        if(mUpdateScrubRunnable != null) {
+            mHandler.removeCallbacks(mUpdateScrubRunnable);
+            super.onPause();
+        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-//
-//        if(mUpdateScrubRunnable != null) {
-//            mHandler.postDelayed(mUpdateScrubRunnable, UPDATE_PERIOD);
-//            super.onResume();
-//        }
+
+        if(mUpdateScrubRunnable != null) {
+            mHandler.postDelayed(mUpdateScrubRunnable, UPDATE_PERIOD);
+            super.onResume();
+        }
     }
 
     @Override
