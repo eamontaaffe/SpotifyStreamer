@@ -2,6 +2,7 @@ package au.com.taaffe.spotifystreamer;
 
 import android.content.Intent;
 import android.support.v4.app.DialogFragment;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.app.NavUtils;
@@ -13,7 +14,7 @@ import android.view.MenuItem;
 
 
 public class MainActivity extends ActionBarActivity implements SearchFragment.SearchListener,
-        TopTracksFragment.TopTracksListener {
+        TopTracksFragment.TopTracksListener,PlayerDialogFragment.PlayerDialogFragmentListener {
 
     private final String LOG_TAG = SearchFragment.class.getSimpleName();
 
@@ -109,6 +110,15 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
             Intent openPlayerIntent = new Intent(this, PlayerActivity.class);
             openPlayerIntent.putExtras(bundle);
             startActivity(openPlayerIntent);
+        }
+    }
+
+    @Override
+    public void onPlayerServiceComplete() {
+        Fragment prev = getSupportFragmentManager().findFragmentByTag(PLAYERDIALOGFRAGMENT_TAG);
+        if (prev != null) {
+            DialogFragment df = (DialogFragment) prev;
+            df.dismiss();
         }
     }
 }

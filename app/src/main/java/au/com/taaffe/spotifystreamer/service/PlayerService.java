@@ -407,21 +407,29 @@ public class PlayerService extends Service {
         return mBinder;
     }
 
-    public String getStreamUrl() {return mPlaylist.get(mTrackId).track_preview_url; }
+    public String getStreamUrl() {
+        if (mPlaylist == null)
+            return null;
+        return mPlaylist.get(mTrackId).track_preview_url; }
     public String getArtist() {
+        if (mPlaylist == null)
+            return null;
         return mPlaylist.get(mTrackId).artist;
     }
     public String getAlbum() {
+        if (mPlaylist == null)
+            return null;
         return mPlaylist.get(mTrackId).album;
     }
     public String getTrack() {
+        if (mPlaylist == null)
+            return null;
         return mPlaylist.get(mTrackId).track_name;
     }
     public Bitmap getAlbumImage() {
         if(mAlbumImage != null) {
             return mAlbumImage;
         }
-        //TODO should probably start image load if null
         return null;
     }
     public Bundle getColors() {

@@ -71,12 +71,32 @@ public class PlayerDialogFragment extends DialogFragment {
     private int mVibrantColor = -1;
     private int mDarkVibrantColor = -1;
     private boolean mAttached = false;
-
     private Handler mHandler = new Handler();
-
     private Runnable mUpdateScrubRunnable;
+    private PlayerDialogFragmentListener mPlayerDialogFragmentListener;
 
     public PlayerDialogFragment() {
+    }
+
+    public interface PlayerDialogFragmentListener {
+        /**
+         * DetailFragmentCallback for when an item has been selected.
+         */
+        void onPlayerServiceComplete();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        // Verify that the host activity implements the callback interface
+        try {
+            mPlayerDialogFragmentListener = (PlayerDialogFragmentListener) getActivity();
+        } catch (ClassCastException e) {
+            // The activity doesn't implement the interface, throw exception
+            throw new ClassCastException(getActivity().toString()
+                    + " must implement NoticeDialogListener");
+        }
     }
 
     @Override
@@ -153,7 +173,9 @@ public class PlayerDialogFragment extends DialogFragment {
 
                 @Override
                 public void onClose() {
-                    getActivity().finish();
+                    if (mPlayerDialogFragmentListener != null) {
+                        mPlayerDialogFragmentListener.onPlayerServiceComplete();
+                    }
                 }
             });
         }

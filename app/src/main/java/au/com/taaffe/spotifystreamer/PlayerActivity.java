@@ -6,7 +6,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 
-public class PlayerActivity extends ActionBarActivity {
+public class PlayerActivity extends ActionBarActivity
+        implements PlayerDialogFragment.PlayerDialogFragmentListener{
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,5 +49,10 @@ public class PlayerActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onPlayerServiceComplete() {
+        finish();
     }
 }
