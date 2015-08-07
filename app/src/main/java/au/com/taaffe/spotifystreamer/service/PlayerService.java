@@ -52,9 +52,12 @@ public class PlayerService extends Service {
     public static final String ACTION_NEXT = "action_next";
     public static final String ACTION_PREVIOUS = "action_previous";
     public static final String ACTION_STOP = "action_stop";
+    public static final String ACTION_OPEN = "action_open";
+
     public static final String EXTRA_PLAYLIST = "track_list";
     public static final String EXTRA_TRACK_ID = "extra_track_id";
     public static final String EXTRA_COLORS = "colors";
+    public static final String EXTRA_TWO_PANE = "extra_two_pane";
 
     private final IBinder mBinder = new PlayerBinder();
 
@@ -70,12 +73,17 @@ public class PlayerService extends Service {
     private MediaControllerCompat.TransportControls mTransportControls;
     private Context mContext;
 
+    // Single pane unless told otherwise
+    private boolean mTwoPane = false;
+
     private Target mTarget = new Target() {
         @Override
         public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
             mAlbumImage = bitmap;
             if (mListener != null) {
                 mListener.updateAlbumImage(mAlbumImage);
+                mListener.updateStatus();
+                mListener.updateTrack();
             }
             createNotification();
         }
@@ -94,14 +102,22 @@ public class PlayerService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && intent.hasExtra(EXTRA_PLAYLIST)) {
+            Log.d(LOG_TAG,"new playlist recieved");
             mPlaylist = intent.getParcelableArrayListExtra(EXTRA_PLAYLIST);
 
             // When a playlist is received, start from the beginning unless a trackId has
             // been specified
-            mTrackId = 0;
+            if (intent.hasExtra(EXTRA_TRACK_ID)) {
+                mTrackId = intent.getIntExtra(EXTRA_TRACK_ID, INVALID_TRACK_ID);
+            } else {
+                mTrackId = 0;
+            }
+            if(mMediaPlayer != null) {
+                mTransportControls.sendCustomAction(ACTION_PLAY, null);
+            }
         }
-        if (intent != null && intent.hasExtra(EXTRA_TRACK_ID)) {
-            mTrackId = intent.getIntExtra(EXTRA_TRACK_ID, INVALID_TRACK_ID);
+        if (intent != null && intent.hasExtra(EXTRA_TWO_PANE)) {
+            mTwoPane = intent.getBooleanExtra(EXTRA_TWO_PANE, false);
         }
         if (intent != null && intent.hasExtra(EXTRA_COLORS)) {
             mColors = intent.getBundleExtra(EXTRA_COLORS);
@@ -136,9 +152,34 @@ public class PlayerService extends Service {
             case ACTION_STOP:
                 stopSelf();
                 break;
+            case ACTION_OPEN:
+                openPlayer();
+                break;
             default:
                 return;
         }
+    }
+
+    public void openPlayer() {
+        Intent playerIntent;
+        if(mTwoPane) {
+            playerIntent = new Intent(this, MainActivity.class)
+                    .putExtra(MainActivity.EXTRA_LAUNCH_PLAYER,true)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        } else {
+            playerIntent = new Intent(this, PlayerActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        }
+
+        this.startActivity(playerIntent);
+//        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+//        stackBuilder.addNextIntent(playerIntent);
+//        PendingIntent playerPendingIntent =
+//                stackBuilder.getPendingIntent(
+//                        0,
+//                        PendingIntent.FLAG_UPDATE_CURRENT
+//                );
     }
 
     public void loadTrack() {
@@ -198,117 +239,116 @@ public class PlayerService extends Service {
         try {
             mMediaPlayer.setDataSource(getStreamUrl());
         } catch (IllegalArgumentException e) {
+         Log.e(LOG_TAG, e.getMessage());
+        } catch (IOException e) {
+            Log.e(LOG_TAG, e.getMessage());
+        }
+            mPlayerPrepared = false;
+            mMediaPlayer.prepareAsync();
+        }
+
+//This is required for the MediaSessionCompat constructor for API < 21
+public class MediaButtonEventReceiver extends BroadcastReceiver {
+    private final String LOG_TAG = MediaButtonEventReceiver.class.getSimpleName();
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+    }
+}
+
+private MediaSessionCompat.Callback mediaSessionCallback = new MediaSessionCompat.Callback() {
+    private final String LOG_TAG = MediaSessionCompat.Callback.class.getSimpleName();
+
+    @Override
+    public void onPlay() {
+        Log.d(LOG_TAG, "onPlay");
+
+        if(mPlayerPrepared) {
+            mMediaPlayer.start();
+            loadTrack();
+            if (mListener != null)
+                mListener.updateStatus();
+            createNotification();
+        }
+    }
+
+    @Override
+    public void onPause() {
+        Log.d(LOG_TAG, "onPause");
+        if(mPlayerPrepared) {
+            mMediaPlayer.pause();
+            loadTrack();
+            if (mListener != null)
+                mListener.updateStatus();
+            createNotification();
+        }
+    }
+
+    @Override
+    public void onSkipToNext() {
+        Log.d(LOG_TAG, "onSkipToNext");
+
+        if (mPlaylist.size() > mTrackId + 1) {
+            mMediaPlayer.reset();
+            if(mListener != null) {
+                mListener.updateStatus();
+            }
+            mTrackId ++;
+            playTrack();
+            loadTrack();
+        } else {
+            stopSelf();
+        }
+    }
+
+    @Override
+    public void onSkipToPrevious() {
+        Log.d(LOG_TAG, "onSkipToPrevious");
+        if (mTrackId > 0) {
+            mMediaPlayer.reset();
+            if(mListener != null) {
+                mListener.updateStatus();
+            }
+            mTrackId --;
+            playTrack();
+        } else {
+            Toast.makeText(mContext, R.string.first_track_warning, Toast.LENGTH_SHORT).show();
+        }
+        loadTrack();
+    }
+
+    @Override
+    public void onCustomAction(String action, Bundle extras) {
+        super.onCustomAction(action, extras);
+        switch (action) {
+            case ACTION_PLAY:
+                playTrack();
+        }
+        loadTrack();
+    }
+
+    public void playTrack() {
+        mMediaPlayer.reset();
+        mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+
+        try {
+            mMediaPlayer.setDataSource(getStreamUrl());
+            mPlayerPrepared = false;
+            mMediaPlayer.prepareAsync();
+        } catch (IllegalArgumentException e) {
             Log.e(LOG_TAG, e.getMessage());
         } catch (IOException e) {
             Log.e(LOG_TAG, e.getMessage());
         }
-        mPlayerPrepared = false;
-        mMediaPlayer.prepareAsync();
-    }
 
-    //This is required for the MediaSessionCompat constructor for API < 21
-    public class MediaButtonEventReceiver extends BroadcastReceiver {
-        private final String LOG_TAG = MediaButtonEventReceiver.class.getSimpleName();
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
+        // if a view is listening tell it to update itself
+        if (mListener != null) {
+            mListener.updateTrack();
         }
     }
-
-    private MediaSessionCompat.Callback mediaSessionCallback = new MediaSessionCompat.Callback() {
-        private final String LOG_TAG = MediaSessionCompat.Callback.class.getSimpleName();
-
-        @Override
-        public void onPlay() {
-            Log.d(LOG_TAG, "onPlay");
-
-            if(mPlayerPrepared) {
-                mMediaPlayer.start();
-                loadTrack();
-                if (mListener != null)
-                    mListener.updateStatus();
-                createNotification();
-            }
-    }
-
-        @Override
-        public void onPause() {
-            Log.d(LOG_TAG, "onPause");
-            if(mPlayerPrepared) {
-                mMediaPlayer.pause();
-                loadTrack();
-                if (mListener != null)
-                    mListener.updateStatus();
-                createNotification();
-            }
-        }
-
-        @Override
-        public void onSkipToNext() {
-            Log.d(LOG_TAG, "onSkipToNext");
-
-            if (mPlaylist.size() > mTrackId + 1) {
-                mMediaPlayer.reset();
-                if(mListener != null) {
-                    mListener.updateStatus();
-                }
-                playTrack(mTrackId ++);
-                loadTrack();
-            } else {
-                stopSelf();
-            }
-        }
-
-        @Override
-        public void onSkipToPrevious() {
-            Log.d(LOG_TAG, "onSkipToPrevious");
-            if (mTrackId > 0) {
-                mMediaPlayer.reset();
-                if(mListener != null) {
-                    mListener.updateStatus();
-                }
-                playTrack(mTrackId --);
-            } else {
-                Toast.makeText(mContext, R.string.first_track_warning, Toast.LENGTH_SHORT).show();
-            }
-            loadTrack();
-        }
-
-        public void playTrack(int trackId) {
-            mMediaPlayer.reset();
-            mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-
-            try {
-                mMediaPlayer.setDataSource(getStreamUrl());
-                mPlayerPrepared = false;
-                mMediaPlayer.prepareAsync();
-            } catch (IllegalArgumentException e) {
-                Log.e(LOG_TAG, e.getMessage());
-            } catch (IOException e) {
-                Log.e(LOG_TAG, e.getMessage());
-            }
-
-            // if a view is listening tell it to update itself
-            if (mListener != null) {
-                mListener.updateTrack();
-            }
-        }
-    };
+};
 
     private void createNotification() {
-
-        Intent playerIntent = new Intent(this, PlayerActivity.class)
-                .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        stackBuilder.addNextIntent(playerIntent);
-        PendingIntent playerPendingIntent =
-                stackBuilder.getPendingIntent(
-                        0,
-                        PendingIntent.FLAG_UPDATE_CURRENT
-                );
-
         int playPauseDrawable;
         PendingIntent playPauseIntent;
         String playPauseString;
@@ -324,31 +364,30 @@ public class PlayerService extends Service {
         }
 
         final Notification noti = new NotificationCompat.Builder(this)
-                //TODO swap pause/play button
                 // Hide the timestamp
                 .setShowWhen(false)
-                    // Set the Notification style
+                        // Set the Notification style
                 .setStyle(new NotificationCompat.MediaStyle()
                         // Attach our MediaSession token
                         .setMediaSession(mSession.getSessionToken())
                                 // Show our playback controls in the compat view
                         .setShowActionsInCompactView(0, 1, 2))
-                    // Set the large and small icons
+                        // Set the large and small icons
                 .setLargeIcon(mAlbumImage)
                 .setSmallIcon(android.R.drawable.stat_notify_more)
-                    // Set Notification content information
+                        // Set Notification content information
                 .setContentText(getArtist())
                 .setContentInfo(getAlbum())
                 .setContentTitle(getTrack())
-                .setContentIntent(playerPendingIntent)
-                    // Add some playback controls
+                .setContentIntent(intentBuilder(ACTION_OPEN))
+                        // Add some playback controls
                 .addAction(android.R.drawable.ic_media_previous, "prev", intentBuilder(ACTION_PREVIOUS))
                 .addAction(playPauseDrawable, playPauseString, playPauseIntent)
                 .addAction(android.R.drawable.ic_media_next, "next", intentBuilder(ACTION_NEXT))
                 .setDeleteIntent(intentBuilder(ACTION_STOP))
                 .build();
 
-            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIFICATION_ID, noti);
+        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIFICATION_ID, noti);
     }
 
     private PendingIntent intentBuilder(String action) {
@@ -373,34 +412,34 @@ public class PlayerService extends Service {
         super.onDestroy();
     }
 
-    ////////////////////////////////////////////////////////////////
-    ///////// Code for interfacing with a view /////////////////////
-    ////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////
+///////// Code for interfacing with a view /////////////////////
+////////////////////////////////////////////////////////////////
 
-    public class PlayerBinder extends Binder {
-        public PlayerService getService() {
-            // Return this instance of LocalService so clients can call public methods
-            return PlayerService.this;
-        }
-        public void setListener(PlayerServiceListener listener) {
-            mListener = listener;
-        }
+public class PlayerBinder extends Binder {
+    public PlayerService getService() {
+        // Return this instance of LocalService so clients can call public methods
+        return PlayerService.this;
     }
-
-    // Callback for views to implement
-    public interface PlayerServiceListener {
-        //used to notify the view of a change in track
-        void updateTrack();
-
-        //used to notify the view of a change in the MediaPlayer state
-        void updateStatus();
-
-        //used to notify the view when the artist cover is loaded
-        void updateAlbumImage(Bitmap albumImage);
-
-        //used notify a bound view that the service is closing
-        void onClose();
+    public void setListener(PlayerServiceListener listener) {
+        mListener = listener;
     }
+}
+
+// Callback for views to implement
+public interface PlayerServiceListener {
+    //used to notify the view of a change in track
+    void updateTrack();
+
+    //used to notify the view of a change in the MediaPlayer state
+    void updateStatus();
+
+    //used to notify the view when the artist cover is loaded
+    void updateAlbumImage(Bitmap albumImage);
+
+    //used notify a bound view that the service is closing
+    void onClose();
+}
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -408,9 +447,13 @@ public class PlayerService extends Service {
     }
 
     public String getStreamUrl() {
-        if (mPlaylist == null)
-            return null;
-        return mPlaylist.get(mTrackId).track_preview_url; }
+        try {
+            return mPlaylist.get(mTrackId).track_preview_url;
+        } catch (NullPointerException e) {
+            Log.e(LOG_TAG,e.getMessage());
+        }
+        return null;
+    }
     public String getArtist() {
         if (mPlaylist == null)
             return null;
@@ -436,19 +479,21 @@ public class PlayerService extends Service {
         return mColors;
     }
     public int getDuration() {
-        if (mMediaPlayer.isPlaying()) {
+        if (mMediaPlayer != null && mPlayerPrepared) {
             return mMediaPlayer.getDuration();
         }
+        Log.e(LOG_TAG, "getDuration = -1");
         return -1;
     }
     public int getCurrentPosition() {
-        if (mMediaPlayer.isPlaying()) {
+        if (mMediaPlayer != null && mPlayerPrepared) {
             return mMediaPlayer.getCurrentPosition();
         }
+        Log.e(LOG_TAG, "getCurrentPositon = -1");
         return -1;
     }
     public boolean isPlaying(){
-        if(mMediaPlayer != null) {
+        if(mMediaPlayer != null && mPlayerPrepared) {
             return mMediaPlayer.isPlaying();
         }
         return false;
@@ -464,5 +509,10 @@ public class PlayerService extends Service {
     }
     public void onPrevious() {
         mTransportControls.skipToPrevious();
+    }
+    public void seekTo(int progress) {
+        if (mMediaPlayer != null && mPlayerPrepared) {
+            mMediaPlayer.seekTo(progress);
+        }
     }
 }

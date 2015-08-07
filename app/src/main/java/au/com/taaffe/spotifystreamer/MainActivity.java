@@ -1,5 +1,7 @@
 package au.com.taaffe.spotifystreamer;
 
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
@@ -12,11 +14,15 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import au.com.taaffe.spotifystreamer.service.PlayerService;
+
 
 public class MainActivity extends ActionBarActivity implements SearchFragment.SearchListener,
         TopTracksFragment.TopTracksListener,PlayerDialogFragment.PlayerDialogFragmentListener {
 
-    private final String LOG_TAG = SearchFragment.class.getSimpleName();
+    public static final String EXTRA_LAUNCH_PLAYER = "action_launch_player";
+
+    private static final String LOG_TAG = MainActivity.class.getSimpleName();
 
     private static final String TOPTRACKSFRAGMENT_TAG = "TTTAG";
     private static final String PLAYERDIALOGFRAGMENT_TAG = "PDFTAG";
@@ -25,6 +31,12 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.v(LOG_TAG,"onCreate");
+        Intent intent = getIntent();
+        if (intent != null) {
+            Log.v(LOG_TAG, "intent extras: " + intent.getExtras());
+            Log.v(LOG_TAG,"action: " + intent.getAction());
+        }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -47,6 +59,14 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // If the PlayerService is running you whant the player to pop up
+        if (isPlayerServiceRunning())
+            openPlayer(null);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -70,7 +90,7 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
     // happens when an artist is selected, knowing if it is a tablet or a phone
     @Override
     public void onSearchItemSelected(Bundle bundle) {
-        Log.v(LOG_TAG,"onSearchItemSelected");
+        Log.v(LOG_TAG, "onSearchItemSelected");
         if (mTwoPane) {
             // In two-pane mode, show the detail view in this activity by
             // adding or replacing the detail fragment using a
@@ -89,7 +109,6 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
 
             startActivity(openTracksIntent);
         }
-
     }
 
     // This method is the implementation of the top track fragment selection callback
@@ -98,18 +117,31 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
     @Override
     public void onTopTrackItemSelected(Bundle bundle) {
         Log.v(LOG_TAG, "onTopTrackItemSelected");
-        FragmentManager fragmentManager = getSupportFragmentManager();
+
+        bundle.putBoolean(PlayerService.EXTRA_TWO_PANE, mTwoPane);
 
         if (mTwoPane) {
             // The device is using a large layout, so show the fragment as a dialog
-            PlayerDialogFragment newPlayerDialogFragment = new PlayerDialogFragment();
-            newPlayerDialogFragment.setArguments(bundle);
-            newPlayerDialogFragment.show(fragmentManager, PLAYERDIALOGFRAGMENT_TAG);
+            openPlayer(bundle);
         } else {
             // The device is smaller, so show the fragment fullscreen in the PlayerActivity
+            FragmentManager fragmentManager = getSupportFragmentManager();
             Intent openPlayerIntent = new Intent(this, PlayerActivity.class);
             openPlayerIntent.putExtras(bundle);
             startActivity(openPlayerIntent);
+        }
+    }
+
+    private void openPlayer(Bundle bundle) {
+        Log.v(LOG_TAG,"openPlayer");
+        FragmentManager fragmentManager = getSupportFragmentManager();
+
+        DialogFragment old = (DialogFragment) fragmentManager.findFragmentByTag(PLAYERDIALOGFRAGMENT_TAG);
+
+        if(old ==null) {
+            PlayerDialogFragment newPlayerDialogFragment = new PlayerDialogFragment();
+            newPlayerDialogFragment.setArguments(bundle);
+            newPlayerDialogFragment.show(fragmentManager, PLAYERDIALOGFRAGMENT_TAG);
         }
     }
 
@@ -120,5 +152,17 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
             DialogFragment df = (DialogFragment) prev;
             df.dismiss();
         }
+    }
+
+    private boolean isPlayerServiceRunning() {
+        ActivityManager manager = (ActivityManager) this.getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (PlayerService.class.getName().equals(service.service.getClassName())) {
+                Log.v(LOG_TAG,"PlayerService is not running");
+                return true;
+            }
+        }
+        Log.v(LOG_TAG,"PlayerService is not running");
+        return false;
     }
 }

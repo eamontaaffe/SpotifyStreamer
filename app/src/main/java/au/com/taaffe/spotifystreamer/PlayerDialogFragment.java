@@ -86,8 +86,8 @@ public class PlayerDialogFragment extends DialogFragment {
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
 
         // Verify that the host activity implements the callback interface
         try {
@@ -97,30 +97,41 @@ public class PlayerDialogFragment extends DialogFragment {
             throw new ClassCastException(getActivity().toString()
                     + " must implement NoticeDialogListener");
         }
-    }
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
 
         View rootView = inflater.inflate(R.layout.fragment_player, container, false);
 
         ButterKnife.bind(this, rootView);
 
-        // there are 2 restart cases:
-        if (!isPlayerServiceRunning() && savedInstanceState == null) {
-            // * The playerService isnt running and the activity being created
-            parseArguments(getArguments());
-            startPlayerService();
-            bindToPlayerService();
-        } else if (isPlayerServiceRunning()) {
-            // * The playerService is running
-            bindToPlayerService();
-        }
+        mScrubBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if(mBound && fromUser) {
+                    mPlayerService.seekTo(progress);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+        parseArguments(getArguments());
+        startPlayerService();
+        bindToPlayerService();
+
         return rootView;
     }
 
-
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+    }
 
     private void parseArguments(Bundle arguments) {
         if (arguments == null)
@@ -133,15 +144,26 @@ public class PlayerDialogFragment extends DialogFragment {
     }
 
     private void startPlayerService() {
-        Intent intent = new Intent(getActivity(), PlayerService.class);
-
-        intent.putExtras(getArguments());
-        getActivity().startService(intent);
+        if(!mBound) {
+            Intent intent = new Intent(getActivity(), PlayerService.class);
+            Bundle arguments = getArguments();
+            if (arguments != null)
+                intent.putExtras(getArguments());
+            getActivity().startService(intent);
+        }
     }
 
     private void bindToPlayerService() {
-        Intent intent = new Intent(getActivity(), PlayerService.class);
-        getActivity().bindService(intent, mConnection, Context.BIND_IMPORTANT);
+        if (mBound) {
+            updatePlayerView();
+            updatePlayPause();
+        } else {
+            Intent intent = new Intent(getActivity(), PlayerService.class);
+            Bundle arguments = getArguments();
+            if (arguments != null)
+                intent.putExtras(getArguments());
+            getActivity().bindService(intent, mConnection, Context.BIND_IMPORTANT);
+        }
     }
 
     /** Defines callbacks for service binding, passed to bindService() */
@@ -153,9 +175,9 @@ public class PlayerDialogFragment extends DialogFragment {
             // We've bound to LocalService, cast the IBinder and get LocalService instance
             PlayerService.PlayerBinder binder = (PlayerService.PlayerBinder) service;
             mPlayerService = binder.getService();
+            mBound = true;
             updatePlayerView();
             updatePlayPause();
-            mBound = true;
             binder.setListener(new PlayerService.PlayerServiceListener() {
                 @Override
                 public void updateTrack() {
@@ -168,7 +190,8 @@ public class PlayerDialogFragment extends DialogFragment {
 
                 @Override
                 public void updateAlbumImage(Bitmap albumImage) {
-                    mAlbumImageView.setImageBitmap(albumImage);
+                    if (mBound)
+                        mAlbumImageView.setImageBitmap(albumImage);
                 }
 
                 @Override
@@ -186,13 +209,14 @@ public class PlayerDialogFragment extends DialogFragment {
     };
 
     private void updatePlayerView(){
-        mArtistTextView.setText(mPlayerService.getArtist());
-        mAlbumTextView.setText(mPlayerService.getAlbum());
-        mTrackTextView.setText(mPlayerService.getTrack());
-        updateActivityColors(mPlayerService.getColors());
-        mAlbumImageView.setImageBitmap(mPlayerService.getAlbumImage());
-        updateTime(0, 0);
-        startScrubUpdate();
+        if (mBound) {
+            mArtistTextView.setText(mPlayerService.getArtist());
+            mAlbumTextView.setText(mPlayerService.getAlbum());
+            mTrackTextView.setText(mPlayerService.getTrack());
+            updateActivityColors(mPlayerService.getColors());
+            mAlbumImageView.setImageBitmap(mPlayerService.getAlbumImage());
+            startScrubUpdate();
+        }
     };
 
     private void updateActivityColors(Bundle colors) {
@@ -225,24 +249,27 @@ public class PlayerDialogFragment extends DialogFragment {
         Dialog newDialog = super.onCreateDialog(savedInstanceState);
 
         newDialog.getWindow().setLayout(1200, 1200);
+        updatePlayerView();
         return newDialog;
     }
 
     private void updatePlayPause(){
-        if(mPlayerService.isPlaying()) {
-            mPlayPauseButton.setImageDrawable(
-                    getResources().getDrawable(android.R.drawable.ic_media_pause));
-            mPlayPauseButton.setTag(PLAY);
-        } else {
-            mPlayPauseButton.setImageDrawable(
-                    getResources().getDrawable(android.R.drawable.ic_media_play));
-            mPlayPauseButton.setTag(PAUSE);
+        if(mBound) {
+            if (mPlayerService.isPlaying()) {
+                mPlayPauseButton.setImageDrawable(
+                        getResources().getDrawable(android.R.drawable.ic_media_pause));
+                mPlayPauseButton.setTag(PLAY);
+            } else {
+                mPlayPauseButton.setImageDrawable(
+                        getResources().getDrawable(android.R.drawable.ic_media_play));
+                mPlayPauseButton.setTag(PAUSE);
+            }
         }
     }
 
     @OnClick(R.id.play_pause_button)
     public void onPlayPauseButton(View view) {
-        if(!mBound && mPlayerService != null) {
+        if(!mBound) {
             return;
         }
         if(mPlayPauseButton.getTag() == PLAY) {
@@ -254,7 +281,7 @@ public class PlayerDialogFragment extends DialogFragment {
 
     @OnClick(R.id.next_button)
     public void onNextButton(View view) {
-        if(!mBound && mPlayerService != null) {
+        if(!mBound) {
             return;
         }
         mPlayerService.onNext();
@@ -262,7 +289,7 @@ public class PlayerDialogFragment extends DialogFragment {
 
     @OnClick(R.id.previous_button)
     public void onPreviousButton(View view) {
-        if(!mBound && mPlayerService != null) {
+        if(!mBound) {
             return;
         }
         mPlayerService.onPrevious();
@@ -328,10 +355,6 @@ public class PlayerDialogFragment extends DialogFragment {
     @Override
     public void onPause() {
 
-        if (mBound) {
-            getActivity().unbindService(mConnection);
-            mBound = false;
-        }
         if(mUpdateScrubRunnable != null) {
             mHandler.removeCallbacks(mUpdateScrubRunnable);
         }
