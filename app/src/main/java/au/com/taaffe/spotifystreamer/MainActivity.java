@@ -64,14 +64,14 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
         super.onResume();
 
         // If the PlayerService is running you whant the player to pop up
-        if (isPlayerServiceRunning())
+        if (isPlayerServiceRunning() && mTwoPane)
             openPlayer(null);
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-//        getMenuInflater().inflate(R.menu.menu_main, menu);
+        getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
 
@@ -81,6 +81,10 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
             // Respond to the action bar's Up/Home button
             case android.R.id.home:
                 NavUtils.navigateUpFromSameTask(this);
+                return true;
+            case R.id.action_settings:
+                Intent settingsIntent = new Intent(this,SettingsActivity.class);
+                startActivity(settingsIntent);
                 return true;
         }
         return super.onOptionsItemSelected(item);

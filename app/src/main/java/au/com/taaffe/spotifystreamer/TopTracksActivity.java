@@ -33,7 +33,7 @@ public class TopTracksActivity extends ActionBarActivity implements TopTracksFra
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-//        getMenuInflater().inflate(R.menu.menu_top_tracks, menu);
+        getMenuInflater().inflate(R.menu.menu_top_tracks, menu);
         return true;
     }
 
@@ -46,6 +46,8 @@ public class TopTracksActivity extends ActionBarActivity implements TopTracksFra
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            Intent settingsIntent = new Intent(this,SettingsActivity.class);
+            startActivity(settingsIntent);
             return true;
         }
 

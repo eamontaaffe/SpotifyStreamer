@@ -1,10 +1,13 @@
 package au.com.taaffe.spotifystreamer;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
@@ -280,7 +283,15 @@ public class TopTracksFragment extends Fragment {
 
             // TODO add settings option for country
             // Hard code in country setting for now
-            options.put("country", "AU");
+            SharedPreferences preferences =
+                    PreferenceManager.getDefaultSharedPreferences(getActivity());
+
+            String regionKey = getString(R.string.pref_spotify_region_key);
+            String regionDefaultValue = getString(R.string.pref_spotify_region_value_default);
+            String region = preferences.getString(regionKey,regionDefaultValue);
+            Log.v(LOG_TAG,"region preference: " + region);
+
+            options.put("country", region);
 
             SpotifyApi api = new SpotifyApi();
             SpotifyService spotify = api.getService();
