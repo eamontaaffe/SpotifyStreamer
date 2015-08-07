@@ -6,13 +6,6 @@
     <!-- Example General settings -->
     <string name="pref_header_general">General</string>
 
-    <string name="pref_title_social_recommendations">Enable social recommendations</string>
-    <string name="pref_description_social_recommendations">Recommendations for people to contact
-        based on your message history
-    </string>
-
-    <string name="pref_title_display_name">Display name</string>
-    <string name="pref_default_display_name">John Smith</string>
 
     <string name="pref_spotify_region_key">spotify_region</string>
     <string name="pref_spotify_region">Select region code</string>
@@ -30,6 +23,7 @@
 
     <!-- Example settings for Notifications -->
     <string name="pref_header_notifications">Notifications</string>
+    <string name="pref_notifications_key">notifications_key</string>
 
     <string name="pref_title_notifications">Display notification controls</string>
 

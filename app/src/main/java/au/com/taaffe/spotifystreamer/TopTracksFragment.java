@@ -64,6 +64,7 @@ public class TopTracksFragment extends Fragment {
     private TopTracksListener mTopTracksListener;
     private Bitmap mArtistBitmap;
     private FrameLayout mArtistImageFrameLayout;
+    private boolean mAttached = false;
 
     ArrayList <ParcelableTrack> parcelableTracks = new ArrayList<ParcelableTrack>();
 
@@ -80,6 +81,7 @@ public class TopTracksFragment extends Fragment {
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
+        mAttached = true;
 
         // Verify that the host activity implements the callback interface
         try {
@@ -90,6 +92,12 @@ public class TopTracksFragment extends Fragment {
             throw new ClassCastException(activity.toString()
                     + " must implement NoticeDialogListener");
         }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mAttached = false;
     }
 
     // this method is only called once for this fragment
@@ -281,15 +289,12 @@ public class TopTracksFragment extends Fragment {
             String id = params[0];
             Map<String, Object> options = new HashMap<>();
 
-            // TODO add settings option for country
-            // Hard code in country setting for now
             SharedPreferences preferences =
                     PreferenceManager.getDefaultSharedPreferences(getActivity());
 
             String regionKey = getString(R.string.pref_spotify_region_key);
             String regionDefaultValue = getString(R.string.pref_spotify_region_value_default);
             String region = preferences.getString(regionKey,regionDefaultValue);
-            Log.v(LOG_TAG,"region preference: " + region);
 
             options.put("country", region);
 
@@ -322,10 +327,12 @@ public class TopTracksFragment extends Fragment {
                             mName));
                 }
             } else {
-                Toast.makeText(getActivity()
-                        ,getResources().getText(R.string.null_results),
-                        Toast.LENGTH_SHORT
-                ).show();
+                if(mAttached) {
+                    Toast.makeText(getActivity()
+                            , getResources().getText(R.string.null_results),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
             }
         }
     }

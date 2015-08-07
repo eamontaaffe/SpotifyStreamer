@@ -8,12 +8,14 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.session.MediaController;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.TaskStackBuilder;
 import android.support.v7.app.NotificationCompat;
 import android.support.v4.media.session.MediaControllerCompat;
@@ -102,7 +104,7 @@ public class PlayerService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && intent.hasExtra(EXTRA_PLAYLIST)) {
-            Log.d(LOG_TAG,"new playlist recieved");
+            Log.d(LOG_TAG, "new playlist recieved");
             mPlaylist = intent.getParcelableArrayListExtra(EXTRA_PLAYLIST);
 
             // When a playlist is received, start from the beginning unless a trackId has
@@ -127,7 +129,7 @@ public class PlayerService extends Service {
             handleAction(intent.getAction());
         }
 
-        if (mMediaPlayer == null) {
+        if (mMediaPlayer == null ) {
             initMediaSession();
             loadTrack();
         }
@@ -242,6 +244,8 @@ public class PlayerService extends Service {
          Log.e(LOG_TAG, e.getMessage());
         } catch (IOException e) {
             Log.e(LOG_TAG, e.getMessage());
+        } catch (NullPointerException e) {
+            Log.e(LOG_TAG,e.getMessage());
         }
             mPlayerPrepared = false;
             mMediaPlayer.prepareAsync();
@@ -349,45 +353,52 @@ private MediaSessionCompat.Callback mediaSessionCallback = new MediaSessionCompa
 };
 
     private void createNotification() {
-        int playPauseDrawable;
-        PendingIntent playPauseIntent;
-        String playPauseString;
+        SharedPreferences preferences =
+                PreferenceManager.getDefaultSharedPreferences(this);
 
-        if (isPlaying()) {
-            playPauseDrawable = android.R.drawable.ic_media_pause;
-            playPauseIntent = intentBuilder(ACTION_PAUSE);
-            playPauseString = "play";
-        } else {
-            playPauseDrawable = android.R.drawable.ic_media_play;
-            playPauseIntent = intentBuilder(ACTION_PLAY);
-            playPauseString = "pause";
+        String notificationsKey = getString(R.string.pref_notifications_key);
+        boolean notificationsEnabled = preferences.getBoolean(notificationsKey,true);
+        if (notificationsEnabled) {
+            int playPauseDrawable;
+            PendingIntent playPauseIntent;
+            String playPauseString;
+
+            if (isPlaying()) {
+                playPauseDrawable = android.R.drawable.ic_media_pause;
+                playPauseIntent = intentBuilder(ACTION_PAUSE);
+                playPauseString = "play";
+            } else {
+                playPauseDrawable = android.R.drawable.ic_media_play;
+                playPauseIntent = intentBuilder(ACTION_PLAY);
+                playPauseString = "pause";
+            }
+
+            final Notification noti = new NotificationCompat.Builder(this)
+                    // Hide the timestamp
+                    .setShowWhen(false)
+                            // Set the Notification style
+                    .setStyle(new NotificationCompat.MediaStyle()
+                            // Attach our MediaSession token
+                            .setMediaSession(mSession.getSessionToken())
+                                    // Show our playback controls in the compat view
+                            .setShowActionsInCompactView(0, 1, 2))
+                            // Set the large and small icons
+                    .setLargeIcon(mAlbumImage)
+                    .setSmallIcon(android.R.drawable.stat_notify_more)
+                            // Set Notification content information
+                    .setContentText(getArtist())
+                    .setContentInfo(getAlbum())
+                    .setContentTitle(getTrack())
+                    .setContentIntent(intentBuilder(ACTION_OPEN))
+                            // Add some playback controls
+                    .addAction(android.R.drawable.ic_media_previous, "prev", intentBuilder(ACTION_PREVIOUS))
+                    .addAction(playPauseDrawable, playPauseString, playPauseIntent)
+                    .addAction(android.R.drawable.ic_media_next, "next", intentBuilder(ACTION_NEXT))
+                    .setDeleteIntent(intentBuilder(ACTION_STOP))
+                    .build();
+
+            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIFICATION_ID, noti);
         }
-
-        final Notification noti = new NotificationCompat.Builder(this)
-                // Hide the timestamp
-                .setShowWhen(false)
-                        // Set the Notification style
-                .setStyle(new NotificationCompat.MediaStyle()
-                        // Attach our MediaSession token
-                        .setMediaSession(mSession.getSessionToken())
-                                // Show our playback controls in the compat view
-                        .setShowActionsInCompactView(0, 1, 2))
-                        // Set the large and small icons
-                .setLargeIcon(mAlbumImage)
-                .setSmallIcon(android.R.drawable.stat_notify_more)
-                        // Set Notification content information
-                .setContentText(getArtist())
-                .setContentInfo(getAlbum())
-                .setContentTitle(getTrack())
-                .setContentIntent(intentBuilder(ACTION_OPEN))
-                        // Add some playback controls
-                .addAction(android.R.drawable.ic_media_previous, "prev", intentBuilder(ACTION_PREVIOUS))
-                .addAction(playPauseDrawable, playPauseString, playPauseIntent)
-                .addAction(android.R.drawable.ic_media_next, "next", intentBuilder(ACTION_NEXT))
-                .setDeleteIntent(intentBuilder(ACTION_STOP))
-                .build();
-
-        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIFICATION_ID, noti);
     }
 
     private PendingIntent intentBuilder(String action) {
