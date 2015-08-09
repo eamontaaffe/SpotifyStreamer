@@ -229,7 +229,7 @@ public class PlayerDialogFragment extends DialogFragment {
             mAlbumImageView.setImageBitmap(mPlayerService.getAlbumImage());
             startScrubUpdate();
             if(mPlayerDialogFragmentListener != null && mPlayerService.getStreamUrl() != null) {
-                mPlayerDialogFragmentListener.updateShareIntent(mPlayerService.getStreamUrl());
+                mPlayerDialogFragmentListener.updateShareIntent(mPlayerService.getSpotifyUrl());
             }
         }
     };
