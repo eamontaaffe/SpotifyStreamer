@@ -8,8 +8,10 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.app.NavUtils;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.widget.ShareActionProvider;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -27,16 +29,11 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
     private static final String TOPTRACKSFRAGMENT_TAG = "TTTAG";
     private static final String PLAYERDIALOGFRAGMENT_TAG = "PDFTAG";
 
+    private ShareActionProvider mShareActionProvider;
     private boolean mTwoPane;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.v(LOG_TAG,"onCreate");
-        Intent intent = getIntent();
-        if (intent != null) {
-            Log.v(LOG_TAG, "intent extras: " + intent.getExtras());
-            Log.v(LOG_TAG,"action: " + intent.getAction());
-        }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -59,19 +56,48 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
         }
     }
 
+
     @Override
     protected void onResume() {
         super.onResume();
-
         // If the PlayerService is running you whant the player to pop up
         if (isPlayerServiceRunning() && mTwoPane)
             openPlayer(null);
     }
 
     @Override
+    public void updateShareIntent(String previewUrl) {
+        if(mShareActionProvider != null && mTwoPane && previewUrl != null) {
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+            shareIntent.setType("text/plain");
+            shareIntent.putExtra(Intent.EXTRA_TEXT, previewUrl + PlayerDialogFragment.SPOTIFY_SHARE_HASHTAG);
+            mShareActionProvider.setShareIntent(shareIntent);
+        }
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
+
+        if (mTwoPane) {
+            getMenuInflater().inflate(R.menu.menu_player_dialog_fragment, menu);
+
+            // Retrieve the share menu item
+            MenuItem menuItem = menu.findItem(R.id.action_share);
+
+            // Get the provider and hold onto it to set/change the share intent.
+            mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(menuItem);
+
+            //Initailise the share intent to something that isnt silly
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+            shareIntent.setType("text/plain");
+            shareIntent.putExtra(Intent.EXTRA_TEXT, PlayerDialogFragment.SPOTIFY_SHARE_HASHTAG);
+            mShareActionProvider.setShareIntent(shareIntent);
+        }
+
         return true;
     }
 
@@ -94,7 +120,6 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
     // happens when an artist is selected, knowing if it is a tablet or a phone
     @Override
     public void onSearchItemSelected(Bundle bundle) {
-        Log.v(LOG_TAG, "onSearchItemSelected");
         if (mTwoPane) {
             // In two-pane mode, show the detail view in this activity by
             // adding or replacing the detail fragment using a
@@ -120,7 +145,6 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
     // cases
     @Override
     public void onTopTrackItemSelected(Bundle bundle) {
-        Log.v(LOG_TAG, "onTopTrackItemSelected");
 
         bundle.putBoolean(PlayerService.EXTRA_TWO_PANE, mTwoPane);
 
@@ -137,7 +161,6 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
     }
 
     private void openPlayer(Bundle bundle) {
-        Log.v(LOG_TAG,"openPlayer");
         FragmentManager fragmentManager = getSupportFragmentManager();
 
         DialogFragment old = (DialogFragment) fragmentManager.findFragmentByTag(PLAYERDIALOGFRAGMENT_TAG);
@@ -162,11 +185,9 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
         ActivityManager manager = (ActivityManager) this.getSystemService(Context.ACTIVITY_SERVICE);
         for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
             if (PlayerService.class.getName().equals(service.service.getClassName())) {
-                Log.v(LOG_TAG,"PlayerService is not running");
                 return true;
             }
         }
-        Log.v(LOG_TAG,"PlayerService is not running");
         return false;
     }
 }

@@ -1,8 +1,10 @@
 package au.com.taaffe.spotifystreamer;
 
 import android.content.Intent;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.widget.ShareActionProvider;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -10,6 +12,8 @@ import android.view.MenuItem;
 
 public class PlayerActivity extends ActionBarActivity
         implements PlayerDialogFragment.PlayerDialogFragmentListener{
+
+    private ShareActionProvider mShareActionProvider;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +39,17 @@ public class PlayerActivity extends ActionBarActivity
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_player, menu);
+
+        getMenuInflater().inflate(R.menu.menu_player_dialog_fragment, menu);
+
+        // Retrieve the share menu item
+        MenuItem menuItem = menu.findItem(R.id.action_share);
+
+        // Get the provider and hold onto it to set/change the share intent.
+        mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(menuItem);
+
+        updateShareIntent(null);
+
         return true;
     }
 
@@ -58,5 +73,20 @@ public class PlayerActivity extends ActionBarActivity
     @Override
     public void onPlayerServiceComplete() {
         finish();
+    }
+
+    @Override
+    public void updateShareIntent(String previewUrl) {
+        if(mShareActionProvider != null) {
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+            shareIntent.setType("text/plain");
+            if (previewUrl == null) {
+                shareIntent.putExtra(Intent.EXTRA_TEXT, PlayerDialogFragment.SPOTIFY_SHARE_HASHTAG);
+            } else {
+                shareIntent.putExtra(Intent.EXTRA_TEXT, previewUrl + PlayerDialogFragment.SPOTIFY_SHARE_HASHTAG);
+            }
+            mShareActionProvider.setShareIntent(shareIntent);
+        }
     }
 }

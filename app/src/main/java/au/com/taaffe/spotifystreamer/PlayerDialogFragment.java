@@ -8,14 +8,20 @@ import android.content.Context;
 import android.content.ServiceConnection;
 import android.graphics.Bitmap;
 import android.os.IBinder;
+import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
 import android.content.Intent;
 import android.graphics.drawable.ColorDrawable;
 import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBarActivity;
+import android.support.v7.widget.ShareActionProvider;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -75,14 +81,20 @@ public class PlayerDialogFragment extends DialogFragment {
     private Runnable mUpdateScrubRunnable;
     private PlayerDialogFragmentListener mPlayerDialogFragmentListener;
 
-    public PlayerDialogFragment() {
-    }
+    public static String SPOTIFY_SHARE_HASHTAG = " #SpotifyStreamerP2";
+
+    public PlayerDialogFragment() {}
 
     public interface PlayerDialogFragmentListener {
         /**
          * DetailFragmentCallback for when an item has been selected.
          */
         void onPlayerServiceComplete();
+
+        // Since the player is opened in a dialog fragment in twoPane mode,
+        // it would be silly to only show the share widget when it is open.
+        // Instead use an interface to update the activity actionBar
+        void updateShareIntent(String previewUrl);
     }
 
     @Override
@@ -105,7 +117,7 @@ public class PlayerDialogFragment extends DialogFragment {
         mScrubBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if(mBound && fromUser) {
+                if (mBound && fromUser) {
                     mPlayerService.seekTo(progress);
                 }
             }
@@ -216,6 +228,9 @@ public class PlayerDialogFragment extends DialogFragment {
             updateActivityColors(mPlayerService.getColors());
             mAlbumImageView.setImageBitmap(mPlayerService.getAlbumImage());
             startScrubUpdate();
+            if(mPlayerDialogFragmentListener != null && mPlayerService.getStreamUrl() != null) {
+                mPlayerDialogFragmentListener.updateShareIntent(mPlayerService.getStreamUrl());
+            }
         }
     };
 
