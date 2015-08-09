@@ -457,13 +457,22 @@ public interface PlayerServiceListener {
         return mBinder;
     }
 
+//    public String getStreamUrl() {
+//        try {
+//            return mPlaylist.get(mTrackId).track_preview_url;
+//        } catch (NullPointerException e) {
+//            Log.e(LOG_TAG,e.getMessage());
+//        }
+//        return null;
+//    }
     public String getStreamUrl() {
         try {
-            return mPlaylist.get(mTrackId).track_preview_url;
+            return "https://play.spotify.com/track/" + mPlaylist.get(mTrackId).track_id;
         } catch (NullPointerException e) {
             Log.e(LOG_TAG,e.getMessage());
         }
         return null;
+    }
     }
     public String getArtist() {
         if (mPlaylist == null)

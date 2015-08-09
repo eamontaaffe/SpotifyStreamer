@@ -17,6 +17,7 @@ public class ParcelableTrack implements Parcelable {
     public String album;
     public String track_image_url;
     public String track_preview_url;
+    public String track_id;
 
 
     public ParcelableTrack(Track track, String artist) {
@@ -25,6 +26,7 @@ public class ParcelableTrack implements Parcelable {
         this.album = track.album.name;
         this.track_image_url = track.album.images.get(0).url;
         this.track_preview_url = track.preview_url;
+        this.track_id = track.id;
     }
 
     // Constructor used for recreating object from parcel
@@ -37,6 +39,7 @@ public class ParcelableTrack implements Parcelable {
         this.album = data[2];
         this.track_image_url = data[3];
         this.track_preview_url = data[4];
+        this.track_id = data[5];
     }
 
     @Override
@@ -51,7 +54,8 @@ public class ParcelableTrack implements Parcelable {
                 this.artist,
                 this.album,
                 this.track_image_url,
-                this.track_preview_url
+                this.track_preview_url,
+                this.track_id
         });
 
     }
