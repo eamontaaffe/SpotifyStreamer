@@ -81,7 +81,7 @@ public class PlayerDialogFragment extends DialogFragment {
     private Runnable mUpdateScrubRunnable;
     private PlayerDialogFragmentListener mPlayerDialogFragmentListener;
 
-    public static String SPOTIFY_SHARE_HASHTAG = " #SpotifyStreamerP2";
+    public static String SPOTIFY_SHARE_HASHTAG = " #SpotifyStreamer";
 
     public PlayerDialogFragment() {}
 
