@@ -473,7 +473,7 @@ public interface PlayerServiceListener {
         }
         return null;
     }
-    }
+
     public String getArtist() {
         if (mPlaylist == null)
             return null;

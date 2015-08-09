@@ -31,7 +31,7 @@ public class ParcelableTrack implements Parcelable {
 
     // Constructor used for recreating object from parcel
     public ParcelableTrack(Parcel parcel) {
-        String[] data = new String[5];
+        String[] data = new String[6];
         parcel.readStringArray(data);
 
         this.track_name = data[0];
