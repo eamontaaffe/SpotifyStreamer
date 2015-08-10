@@ -11,12 +11,12 @@
     <string name="pref_spotify_region">Select region code</string>
     <string-array name="pref_spotify_region_titles">
         <item>AU</item>
-        <item>UK</item>
+        <item>GB</item>
         <item>US</item>
     </string-array>
     <string-array name="pref_spotify_region_values">
         <item>AU</item>
-        <item>UK</item>
+        <item>GB</item>
         <item>US</item>
     </string-array>
     <string name="pref_spotify_region_value_default">AU</string>
