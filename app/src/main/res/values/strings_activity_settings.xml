@@ -25,6 +25,6 @@
     <string name="pref_header_notifications">Notifications</string>
     <string name="pref_notifications_key">notifications_key</string>
 
-    <string name="pref_title_notifications">Display notification controls</string>
+    <string name="pref_title_notifications">Display notifications</string>
 
 </resources>
