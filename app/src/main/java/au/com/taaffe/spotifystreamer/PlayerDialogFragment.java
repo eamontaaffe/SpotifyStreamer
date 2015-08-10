@@ -132,17 +132,15 @@ public class PlayerDialogFragment extends DialogFragment {
             }
         });
 
-        parseArguments(getArguments());
-
-        startPlayerService();
+        Bundle arguments = null;
+        if (savedInstanceState == null) {
+            parseArguments(getArguments());
+            arguments = getArguments();
+        }
+        startPlayerService(arguments);
         bindToPlayerService();
 
         return rootView;
-    }
-
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
     }
 
     private void parseArguments(Bundle arguments) {
@@ -155,10 +153,9 @@ public class PlayerDialogFragment extends DialogFragment {
         }
     }
 
-    private void startPlayerService() {
+    private void startPlayerService(Bundle arguments) {
         if(!mBound) {
             Intent intent = new Intent(getActivity(), PlayerService.class);
-            Bundle arguments = getArguments();
             if (arguments != null)
                 intent.putExtras(getArguments());
             getActivity().startService(intent);
