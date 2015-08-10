@@ -314,7 +314,13 @@ public class TopTracksFragment extends Fragment {
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
-
+            if (results.tracks.size() == 0) {
+                Toast.makeText(getActivity()
+                        , getResources().getText(R.string.no_top_tracks),
+                        Toast.LENGTH_SHORT
+                ).show();
+            }
+            
             if (results != null) {
                 mTrackAdapter.clear();
                 for (Track track : results.tracks) {
