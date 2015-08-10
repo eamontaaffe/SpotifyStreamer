@@ -70,6 +70,7 @@ public class PlayerDialogFragment extends DialogFragment {
 
     private PlayerService mPlayerService;
     private boolean mBound = false;
+    private boolean mPaused = true;
 
     private Bundle mColors;
     private int mVibrantColor = -1;
@@ -376,6 +377,18 @@ public class PlayerDialogFragment extends DialogFragment {
     }
 
     @Override
+    public void onSaveInstanceState(Bundle outState) {
+        mPaused = true;
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        mPaused = false;
+        super.onCreate(savedInstanceState);
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
 
@@ -383,6 +396,10 @@ public class PlayerDialogFragment extends DialogFragment {
             mHandler.postDelayed(mUpdateScrubRunnable, UPDATE_PERIOD);
             super.onResume();
         }
+    }
+
+    public boolean isPaused() {
+        return mPaused;
     }
 
     private boolean isPlayerServiceRunning() {

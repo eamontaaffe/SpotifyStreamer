@@ -13,10 +13,8 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
-import android.media.session.MediaController;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.v4.app.TaskStackBuilder;
 import android.support.v7.app.NotificationCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 
@@ -35,9 +33,7 @@ import java.util.ArrayList;
 import au.com.taaffe.spotifystreamer.MainActivity;
 import au.com.taaffe.spotifystreamer.ParcelableTrack;
 import au.com.taaffe.spotifystreamer.PlayerActivity;
-import au.com.taaffe.spotifystreamer.PlayerDialogFragment;
 import au.com.taaffe.spotifystreamer.R;
-import butterknife.Bind;
 
 /**
  * Created by eamon on 30/07/15.
@@ -47,7 +43,8 @@ public class PlayerService extends Service {
     private static final String LOG_TAG = PlayerService.class.getSimpleName();
     private static final String MEDIA_SESSION_TAG = "PST";
     private static final int INVALID_TRACK_ID = -1;
-    private static final int NOTIFICATION_ID = 3121;
+    private static final int NOW_PLAYING_NOTIFICATION_ID = 24;
+    private static final int MEDIA_CONTROLLER_NOTIFICATION_ID = 3121;
 
     public static final String ACTION_PLAY = "action_play";
     public static final String ACTION_PAUSE = "action_pause";
@@ -87,7 +84,7 @@ public class PlayerService extends Service {
                 mListener.updateStatus();
                 mListener.updateTrack();
             }
-            createNotification();
+            createMediaControllerNotification();
         }
 
         @Override
@@ -144,6 +141,7 @@ public class PlayerService extends Service {
     }
 
     public void handleAction(String action) {
+        Log.v(LOG_TAG,"Action Recieved: " + action);
 
         switch (action) {
             case ACTION_PLAY:
@@ -241,7 +239,7 @@ public class PlayerService extends Service {
                 if (mListener != null) {
                     mListener.updateStatus();
                 }
-                createNotification();
+                createMediaControllerNotification();
             }
         });
 
@@ -279,7 +277,7 @@ private MediaSessionCompat.Callback mediaSessionCallback = new MediaSessionCompa
             loadTrack();
             if (mListener != null)
                 mListener.updateStatus();
-            createNotification();
+            createMediaControllerNotification();
         }
     }
 
@@ -291,7 +289,7 @@ private MediaSessionCompat.Callback mediaSessionCallback = new MediaSessionCompa
             loadTrack();
             if (mListener != null)
                 mListener.updateStatus();
-            createNotification();
+            createMediaControllerNotification();
         }
     }
 
@@ -358,8 +356,34 @@ private MediaSessionCompat.Callback mediaSessionCallback = new MediaSessionCompa
         }
     }
 };
+    private void createNowPlayingNotification() {
+        SharedPreferences preferences =
+                PreferenceManager.getDefaultSharedPreferences(this);
 
-    private void createNotification() {
+        String notificationsKey = getString(R.string.pref_notifications_key);
+        boolean notificationsEnabled = preferences.getBoolean(notificationsKey,true);
+        if (notificationsEnabled) {
+            final android.support.v4.app.NotificationCompat.Builder noti = new NotificationCompat.Builder(this)
+                    // Hide the timestamp
+                    .setShowWhen(false)
+                            // Set the Notification style
+                    .setLargeIcon(mAlbumImage)
+                    .setSmallIcon(android.R.drawable.stat_notify_more)
+                            // Set Notification content information
+                    .setContentText(getArtist())
+                    .setContentInfo(getAlbum())
+                    .setContentTitle("Now Playing: " + getTrack());
+
+
+            PendingIntent openPlayerIntent = intentBuilder(ACTION_OPEN);
+            noti.setContentIntent(openPlayerIntent);
+
+            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE))
+                    .notify(NOW_PLAYING_NOTIFICATION_ID, noti.build());
+        }
+    }
+
+    private void createMediaControllerNotification() {
         SharedPreferences preferences =
                 PreferenceManager.getDefaultSharedPreferences(this);
 
@@ -404,8 +428,10 @@ private MediaSessionCompat.Callback mediaSessionCallback = new MediaSessionCompa
                     .setDeleteIntent(intentBuilder(ACTION_STOP))
                     .build();
 
-            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NOTIFICATION_ID, noti);
+            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(MEDIA_CONTROLLER_NOTIFICATION_ID, noti);
         }
+        createNowPlayingNotification();
+
     }
 
     private PendingIntent intentBuilder(String action) {
@@ -423,7 +449,8 @@ private MediaSessionCompat.Callback mediaSessionCallback = new MediaSessionCompa
     public void onDestroy() {
         mMediaPlayer.release();
         mSession.release();
-        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(NOTIFICATION_ID);
+        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(MEDIA_CONTROLLER_NOTIFICATION_ID);
+        ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(NOW_PLAYING_NOTIFICATION_ID);
         if (mListener != null) {
             mListener.onClose();
         }

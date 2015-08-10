@@ -176,8 +176,10 @@ public class MainActivity extends ActionBarActivity implements SearchFragment.Se
     public void onPlayerServiceComplete() {
         Fragment prev = getSupportFragmentManager().findFragmentByTag(PLAYERDIALOGFRAGMENT_TAG);
         if (prev != null) {
-            DialogFragment df = (DialogFragment) prev;
-            df.dismiss();
+            PlayerDialogFragment df = (PlayerDialogFragment) prev;
+            if(!df.isPaused()) {
+                df.dismiss();
+            }
         }
     }
 
