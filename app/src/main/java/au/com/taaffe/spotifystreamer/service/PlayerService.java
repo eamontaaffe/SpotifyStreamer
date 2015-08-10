@@ -105,6 +105,10 @@ public class PlayerService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && intent.hasExtra(EXTRA_PLAYLIST)) {
             Log.d(LOG_TAG, "new playlist recieved");
+
+
+            String currTrackId = getTrackId();
+
             mPlaylist = intent.getParcelableArrayListExtra(EXTRA_PLAYLIST);
 
             // When a playlist is received, start from the beginning unless a trackId has
@@ -114,7 +118,10 @@ public class PlayerService extends Service {
             } else {
                 mTrackId = 0;
             }
-            if(mMediaPlayer != null) {
+
+            String newTrackId = getTrackId();
+
+            if(mMediaPlayer != null && !currTrackId.equals(newTrackId)) {
                 mTransportControls.sendCustomAction(ACTION_PLAY, null);
             }
         }
@@ -472,6 +479,13 @@ public interface PlayerServiceListener {
             Log.e(LOG_TAG,e.getMessage());
         }
         return null;
+    }
+
+    public String getTrackId() {
+        if(mPlaylist == null) {
+            return null;
+        }
+        return mPlaylist.get(mTrackId).track_id;
     }
 
     public String getArtist() {

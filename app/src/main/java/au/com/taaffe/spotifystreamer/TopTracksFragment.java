@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import au.com.taaffe.spotifystreamer.service.PlayerService;
 import jp.wasabeef.picasso.transformations.BlurTransformation;
 import jp.wasabeef.picasso.transformations.gpu.KuwaharaFilterTransformation;
 import kaaes.spotify.webapi.android.SpotifyApi;
@@ -180,8 +181,8 @@ public class TopTracksFragment extends Fragment {
                 Track track = (Track) parent.getItemAtPosition(position);
                 if (track != null) {
                     Bundle bundle = new Bundle();
-                    bundle.putParcelableArrayList(PlayerDialogFragment.TRACK_LIST, parcelableTracks);
-                    bundle.putInt(PlayerDialogFragment.TRACK_INDEX, position);
+                    bundle.putParcelableArrayList(PlayerService.EXTRA_PLAYLIST, parcelableTracks);
+                    bundle.putInt(PlayerService.EXTRA_TRACK_ID, position);
 
 
                     if (mVibrantColor != -1 && mDarkVibrantColor != -1) {
@@ -320,7 +321,7 @@ public class TopTracksFragment extends Fragment {
                         Toast.LENGTH_SHORT
                 ).show();
             }
-            
+
             if (results != null) {
                 mTrackAdapter.clear();
                 for (Track track : results.tracks) {

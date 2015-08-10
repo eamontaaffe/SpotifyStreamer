@@ -50,8 +50,6 @@ public class PlayerDialogFragment extends DialogFragment {
 
     private final String LOG_TAG = PlayerDialogFragment.class.getSimpleName();
 
-    public static final String TRACK_LIST = "track_list";
-    public static final String TRACK_INDEX = "track_index";
     private static String PLAY = "play";
     private static String PAUSE = "pause";
 
@@ -134,6 +132,7 @@ public class PlayerDialogFragment extends DialogFragment {
         });
 
         parseArguments(getArguments());
+
         startPlayerService();
         bindToPlayerService();
 
