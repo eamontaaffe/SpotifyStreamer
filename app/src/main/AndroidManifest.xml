@@ -35,8 +35,7 @@
             android:name=".PlayerActivity"
             android:label="@string/title_activity_player"
             android:launchMode="singleInstance"
-            android:parentActivityName=".TopTracksActivity"
-            android:screenOrientation="portrait" >
+            android:parentActivityName=".TopTracksActivity" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="au.com.taaffe.spotifystreamer.TopTracksActivity" />
